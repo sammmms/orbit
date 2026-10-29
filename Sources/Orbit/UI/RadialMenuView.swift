@@ -34,36 +34,34 @@ public struct RadialMenuView: View {
 
     public var body: some View {
         ZStack {
-            // MARK: - 1. Authentic Translucent Glass Backing
+            // MARK: - 1. High-Transparency Smoked Glass Backing
             let discDiameter = CGFloat(appearance.radius * 2 + 10)
 
             ZStack {
-                // Real system frosted blur (popover material for high clarity & transparency)
-                VisualEffectBlur(material: .popover, blendingMode: .behindWindow, state: .active)
-                    .clipShape(Circle())
+                // Real macOS blur with Vibrant Dark appearance (prevents milky white in Light Mode!)
+                // Opacity at 0.65 allows background text & windows to clearly show through
+                VisualEffectBlur(
+                    material: .underWindowBackground,
+                    blendingMode: .behindWindow,
+                    state: .active,
+                    appearance: NSAppearance(named: .vibrantDark)
+                )
+                .clipShape(Circle())
+                .opacity(0.65)
 
-                // Extremely subtle glass tint so content underneath remains clearly visible & frosted
+                // Very light smoked glass tint for contrast
                 Circle()
-                    .fill(
-                        LinearGradient(
-                            colors: [
-                                Color.white.opacity(0.06),
-                                Color.white.opacity(0.01)
-                            ],
-                            startPoint: .topLeading,
-                            endPoint: .bottomTrailing
-                        )
-                    )
+                    .fill(Color.black.opacity(0.18))
 
-                // Outer Glass Specular Rim
+                // Outer Glass Specular Bevel Border
                 Circle()
                     .strokeBorder(
                         LinearGradient(
                             colors: [
-                                Color.white.opacity(0.35),
+                                Color.white.opacity(0.38),
                                 Color.white.opacity(0.12),
-                                Color.white.opacity(0.05),
-                                Color.white.opacity(0.2)
+                                Color.white.opacity(0.06),
+                                Color.white.opacity(0.22)
                             ],
                             startPoint: .topLeading,
                             endPoint: .bottomTrailing
@@ -73,10 +71,10 @@ public struct RadialMenuView: View {
             }
             .frame(width: discDiameter, height: discDiameter)
             // Soft native macOS drop shadow
-            .shadow(color: Color.black.opacity(0.35), radius: 28, x: 0, y: 14)
-            .shadow(color: Color.black.opacity(0.18), radius: 8, x: 0, y: 3)
+            .shadow(color: Color.black.opacity(0.38), radius: 28, x: 0, y: 14)
+            .shadow(color: Color.black.opacity(0.2), radius: 8, x: 0, y: 3)
 
-            // MARK: - 2. Triangular Slices with Sector Outlines
+            // MARK: - 2. Triangular Pie Slices with Defined Outlines
             ForEach(Array(items.enumerated()), id: \.element.id) { index, item in
                 sliceWedgeView(index: index, item: item)
             }
@@ -121,7 +119,7 @@ public struct RadialMenuView: View {
         let count = max(items.count, 1)
         let step = 360.0 / Double(count)
         let midAngleDeg = -90.0 + (Double(index) * step)
-        let gapDeg = 2.5
+        let gapDeg = 2.0
         let startAngleDeg = midAngleDeg - (step / 2.0) + (gapDeg / 2.0)
         let endAngleDeg = midAngleDeg + (step / 2.0) - (gapDeg / 2.0)
 
@@ -147,16 +145,16 @@ public struct RadialMenuView: View {
                     ? AnyShapeStyle(
                         LinearGradient(
                             colors: [
-                                item.swiftUIColor.opacity(0.38),
-                                item.swiftUIColor.opacity(0.14)
+                                item.swiftUIColor.opacity(0.42),
+                                item.swiftUIColor.opacity(0.18)
                             ],
                             startPoint: .topLeading,
                             endPoint: .bottomTrailing
                         )
                     )
-                    : AnyShapeStyle(Color.white.opacity(0.03))
+                    : AnyShapeStyle(Color.white.opacity(0.04))
             )
-            // Triangular Outline on each selection
+            // Triangular Outline on EACH sector (clearly visible!)
             .overlay(
                 AnnularSector(
                     startAngle: Angle(degrees: startAngleDeg),
@@ -166,17 +164,17 @@ public struct RadialMenuView: View {
                 )
                 .stroke(
                     isSelected
-                        ? item.swiftUIColor.opacity(0.95)
-                        : Color.white.opacity(0.12),
-                    lineWidth: isSelected ? 2.0 : 1.0
+                        ? item.swiftUIColor
+                        : Color.white.opacity(0.24),
+                    lineWidth: isSelected ? 2.5 : 1.2
                 )
                 .shadow(
-                    color: isSelected ? item.swiftUIColor.opacity(0.7) : Color.clear,
-                    radius: isSelected ? 8 : 0
+                    color: isSelected ? item.swiftUIColor.opacity(0.85) : Color.clear,
+                    radius: isSelected ? 10 : 0
                 )
             )
 
-            // Icon and Label cleanly inside wedge (NO rounded rectangles / squares!)
+            // Icon and Label directly inside wedge (NO rounded rectangles / squares!)
             VStack(spacing: 3) {
                 Image(systemName: item.icon)
                     .font(.system(size: isSelected ? 22 : 18, weight: isSelected ? .bold : .semibold))
@@ -185,11 +183,11 @@ public struct RadialMenuView: View {
 
                 Text(item.title)
                     .font(.system(size: 10, weight: isSelected ? .bold : .medium, design: .rounded))
-                    .foregroundColor(isSelected ? .white : .white.opacity(0.85))
+                    .foregroundColor(isSelected ? .white : .white.opacity(0.9))
                     .lineLimit(1)
             }
             .position(x: posX, y: posY)
-            .scaleEffect(isSelected ? 1.12 : 1.0)
+            .scaleEffect(isSelected ? 1.14 : 1.0)
         }
     }
 
@@ -199,13 +197,19 @@ public struct RadialMenuView: View {
         let selectedItem = hoveredIndex.flatMap { items.indices.contains($0) ? items[$0] : nil }
 
         return ZStack {
-            // Frosted Center Orb
-            VisualEffectBlur(material: .popover, blendingMode: .behindWindow, state: .active)
-                .clipShape(Circle())
-                .frame(width: innerR * 2, height: innerR * 2)
+            // Frosted Center Orb with matching vibrant dark glass
+            VisualEffectBlur(
+                material: .underWindowBackground,
+                blendingMode: .behindWindow,
+                state: .active,
+                appearance: NSAppearance(named: .vibrantDark)
+            )
+            .clipShape(Circle())
+            .frame(width: innerR * 2, height: innerR * 2)
+            .opacity(0.7)
 
             Circle()
-                .fill(Color.white.opacity(0.04))
+                .fill(Color.black.opacity(0.2))
                 .frame(width: innerR * 2, height: innerR * 2)
 
             // Center Specular Bevel Border
@@ -213,8 +217,8 @@ public struct RadialMenuView: View {
                 .strokeBorder(
                     LinearGradient(
                         colors: [
-                            selectedItem != nil ? selectedItem!.swiftUIColor.opacity(0.95) : Color.white.opacity(0.4),
-                            selectedItem != nil ? selectedItem!.swiftUIColor.opacity(0.35) : Color.white.opacity(0.12)
+                            selectedItem != nil ? selectedItem!.swiftUIColor : Color.white.opacity(0.45),
+                            selectedItem != nil ? selectedItem!.swiftUIColor.opacity(0.4) : Color.white.opacity(0.15)
                         ],
                         startPoint: .topLeading,
                         endPoint: .bottomTrailing
@@ -223,7 +227,7 @@ public struct RadialMenuView: View {
                 )
                 .frame(width: innerR * 2, height: innerR * 2)
                 .shadow(
-                    color: selectedItem?.swiftUIColor.opacity(0.5) ?? Color.clear,
+                    color: selectedItem?.swiftUIColor.opacity(0.6) ?? Color.clear,
                     radius: 10
                 )
 
@@ -233,7 +237,7 @@ public struct RadialMenuView: View {
                     Image(systemName: item.icon)
                         .font(.system(size: 16, weight: .bold))
                         .foregroundColor(item.swiftUIColor)
-                        .shadow(color: item.swiftUIColor.opacity(0.7), radius: 6)
+                        .shadow(color: item.swiftUIColor.opacity(0.8), radius: 6)
 
                     Text(item.title)
                         .font(.system(size: 11, weight: .bold, design: .rounded))
@@ -243,7 +247,7 @@ public struct RadialMenuView: View {
                     if let subtitle = item.subtitle {
                         Text(subtitle)
                             .font(.system(size: 8, weight: .medium))
-                            .foregroundColor(.white.opacity(0.65))
+                            .foregroundColor(.white.opacity(0.7))
                             .lineLimit(1)
                     }
                 }
@@ -252,11 +256,11 @@ public struct RadialMenuView: View {
                 VStack(spacing: 3) {
                     Image(systemName: "circle.circle")
                         .font(.system(size: 17, weight: .light))
-                        .foregroundColor(.white.opacity(0.45))
+                        .foregroundColor(.white.opacity(0.5))
 
                     Text("Orbit")
                         .font(.system(size: 10, weight: .bold, design: .rounded))
-                        .foregroundColor(.white.opacity(0.75))
+                        .foregroundColor(.white.opacity(0.8))
                 }
                 .transition(.opacity)
             }

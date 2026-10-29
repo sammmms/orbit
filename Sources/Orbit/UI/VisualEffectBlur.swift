@@ -5,15 +5,21 @@ public struct VisualEffectBlur: NSViewRepresentable {
     public var material: NSVisualEffectView.Material
     public var blendingMode: NSVisualEffectView.BlendingMode
     public var state: NSVisualEffectView.State
+    public var isEmphasized: Bool
+    public var appearance: NSAppearance?
 
     public init(
-        material: NSVisualEffectView.Material = .hudWindow,
+        material: NSVisualEffectView.Material = .underWindowBackground,
         blendingMode: NSVisualEffectView.BlendingMode = .behindWindow,
-        state: NSVisualEffectView.State = .active
+        state: NSVisualEffectView.State = .active,
+        isEmphasized: Bool = true,
+        appearance: NSAppearance? = NSAppearance(named: .vibrantDark)
     ) {
         self.material = material
         self.blendingMode = blendingMode
         self.state = state
+        self.isEmphasized = isEmphasized
+        self.appearance = appearance
     }
 
     public func makeNSView(context: Context) -> NSVisualEffectView {
@@ -21,7 +27,8 @@ public struct VisualEffectBlur: NSViewRepresentable {
         view.material = material
         view.blendingMode = blendingMode
         view.state = state
-        view.isEmphasized = true
+        view.isEmphasized = isEmphasized
+        view.appearance = appearance
         return view
     }
 
@@ -29,5 +36,7 @@ public struct VisualEffectBlur: NSViewRepresentable {
         nsView.material = material
         nsView.blendingMode = blendingMode
         nsView.state = state
+        nsView.isEmphasized = isEmphasized
+        nsView.appearance = appearance
     }
 }
