@@ -5,6 +5,9 @@ public final class AppDelegate: NSObject, NSApplicationDelegate {
         // Run as background menu bar app (no dock icon clutter)
         NSApp.setActivationPolicy(.accessory)
 
+        // Ensure configuration is loaded or created
+        _ = ConfigManager.shared
+
         // Initialize Menu Bar item
         MenuBarController.shared.setup()
 
