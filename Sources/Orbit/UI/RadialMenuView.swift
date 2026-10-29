@@ -42,21 +42,75 @@ public struct RadialMenuView: View {
 
     public var body: some View {
         ZStack {
-            // MARK: - 1. Triangular Pie Slices with Radial Pop
-            // Slices NEVER overlap their neighbors: clean angular sectors with radial offset pop
+            // MARK: - 1. Dynamic Glass Lens Disc (Expands seamlessly with hovered slice!)
+            let isHovering = hoveredIndex != nil
+            let discDiameter = CGFloat(appearance.radius * 2 + (isHovering ? 26 : 8))
+
+            ZStack {
+                // A. Real hardware GPU Gaussian blur behind window
+                VisualEffectBlur(
+                    material: isDark ? .underWindowBackground : .popover,
+                    blendingMode: .behindWindow,
+                    state: .active,
+                    appearance: NSAppearance(named: isDark ? .vibrantDark : .vibrantLight)
+                )
+                .clipShape(Circle())
+                .opacity(isDark ? 0.68 : 0.78)
+
+                // B. Optical Glass Tint
+                Circle()
+                    .fill(isDark ? Color.black.opacity(0.18) : Color.white.opacity(0.35))
+
+                // C. Surface Gloss Sheen (Angled studio reflection across the glass lens)
+                Circle()
+                    .fill(
+                        LinearGradient(
+                            colors: [
+                                isDark ? Color.white.opacity(0.24) : Color.white.opacity(0.45),
+                                Color.white.opacity(0.04),
+                                Color.clear
+                            ],
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        )
+                    )
+
+                // D. Specular Glass Bevel Rim (Catches light at top-left, shadow at bottom-right)
+                Circle()
+                    .strokeBorder(
+                        LinearGradient(
+                            colors: [
+                                Color.white.opacity(isDark ? 0.65 : 0.8),
+                                Color.white.opacity(0.2),
+                                Color.clear,
+                                Color.white.opacity(isDark ? 0.25 : 0.4)
+                            ],
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        ),
+                        lineWidth: 1.5
+                    )
+            }
+            .frame(width: discDiameter, height: discDiameter)
+            // Multi-tier optical glass drop shadows
+            .shadow(color: Color.black.opacity(isDark ? 0.45 : 0.22), radius: 32, x: 0, y: 16)
+            .shadow(color: Color.black.opacity(isDark ? 0.2 : 0.1), radius: 10, x: 0, y: 4)
+            .animation(.spring(response: 0.28, dampingFraction: 0.58), value: isHovering)
+
+            // MARK: - 2. Triangular Pie Slices with Dynamic Glass Physics
             ForEach(Array(items.enumerated()), id: \.element.id) { index, item in
                 sliceWedgeView(index: index, item: item)
             }
 
-            // MARK: - 2. Center Glass Hub (Orb)
+            // MARK: - 3. Center Crystal Glass Orb Hub
             centerHubView
         }
         .frame(width: size, height: size)
         .scaleEffect(isVisible ? 1.0 : 0.88)
         .opacity(isVisible ? 1.0 : 0.0)
         .animation(.spring(response: 0.24, dampingFraction: 0.72), value: isVisible)
-        // Bouncy spring physics for smooth radial pop
-        .animation(.spring(response: 0.28, dampingFraction: 0.55), value: hoveredIndex)
+        // High-energy bouncy spring physics for hovering
+        .animation(.spring(response: 0.28, dampingFraction: 0.55, blendDuration: 0.05), value: hoveredIndex)
         .onAppear {
             isVisible = true
         }
@@ -90,7 +144,7 @@ public struct RadialMenuView: View {
         let step = 360.0 / Double(count)
         let midAngleDeg = -90.0 + (Double(index) * step)
 
-        // Strict, consistent angular borders with 2.5° gap (GUARANTEES ZERO OVERLAP WITH NEIGHBORS!)
+        // Strict angular borders with 2.5° gap (GUARANTEES ZERO OVERLAP WITH NEIGHBORS!)
         let gapDeg = 2.5
         let startAngleDeg = midAngleDeg - (step / 2.0) + (gapDeg / 2.0)
         let endAngleDeg = midAngleDeg + (step / 2.0) - (gapDeg / 2.0)
@@ -110,7 +164,7 @@ public struct RadialMenuView: View {
         let offsetY = dirY * popDistance
 
         // Centroid position for the icon and label
-        // Positioned safely at 44% of distance between innerR and outerR (over 30pt margin from outer rim!)
+        // Positioned safely at 44% of distance between innerR and outerR (over 35pt margin from outer rim!)
         let midR = innerR + (outerR - innerR) * 0.44
         let posX = center.x + dirX * midR
         let posY = center.y + dirY * midR
@@ -123,57 +177,47 @@ public struct RadialMenuView: View {
         )
 
         ZStack {
-            // A. Frosted Glass Backing for this wedge
-            VisualEffectBlur(
-                material: isDark ? .underWindowBackground : .menu,
-                blendingMode: .behindWindow,
-                state: .active,
-                appearance: NSAppearance(named: isDark ? .vibrantDark : .vibrantLight)
-            )
-            .clipShape(sectorShape)
-            .opacity(isDark ? (isSelected ? 0.85 : 0.65) : (isSelected ? 0.9 : 0.72))
-
-            // B. Translucent Tint & Accent Gradient
+            // A. Individual Glass Wedge Sheen
             sectorShape
                 .fill(
                     isSelected
                         ? AnyShapeStyle(
                             LinearGradient(
                                 colors: [
-                                    item.swiftUIColor.opacity(isDark ? 0.48 : 0.38),
-                                    item.swiftUIColor.opacity(isDark ? 0.22 : 0.14)
+                                    item.swiftUIColor.opacity(isDark ? 0.52 : 0.42),
+                                    item.swiftUIColor.opacity(isDark ? 0.24 : 0.16)
                                 ],
                                 startPoint: .topLeading,
                                 endPoint: .bottomTrailing
                             )
                         )
-                        : AnyShapeStyle(isDark ? Color.black.opacity(0.18) : Color.white.opacity(0.35))
+                        : AnyShapeStyle(isDark ? Color.white.opacity(0.04) : Color.white.opacity(0.12))
                 )
 
-            // C. Triangular Outline with Bouncy Glow
+            // B. Specular Etched Glass Groove Outline
             sectorShape
                 .stroke(
                     isSelected
                         ? item.swiftUIColor
-                        : (isDark ? Color.white.opacity(0.24) : Color.black.opacity(0.18)),
+                        : (isDark ? Color.white.opacity(0.24) : Color.black.opacity(0.16)),
                     lineWidth: isSelected ? 2.5 : 1.2
                 )
                 .shadow(
-                    color: isSelected ? item.swiftUIColor.opacity(0.85) : Color.clear,
-                    radius: isSelected ? 10 : 0
+                    color: isSelected ? item.swiftUIColor.opacity(0.9) : Color.clear,
+                    radius: isSelected ? 12 : 0
                 )
 
-            // D. Icon and Punchy Single-Word Label directly inside wedge (Safe from outer edge!)
+            // C. Icon and Punchy Single-Word Label directly inside wedge (Safe from outer edge!)
             VStack(spacing: 2) {
                 Image(systemName: item.icon)
-                    .font(.system(size: isSelected ? 20 : 17, weight: isSelected ? .bold : .semibold))
+                    .font(.system(size: isSelected ? 21 : 18, weight: isSelected ? .bold : .semibold))
                     .foregroundColor(
                         isSelected
                             ? (isDark ? .white : item.swiftUIColor)
                             : (isDark ? item.swiftUIColor.opacity(0.95) : item.swiftUIColor)
                     )
                     .shadow(
-                        color: isSelected ? item.swiftUIColor.opacity(0.8) : Color.clear,
+                        color: isSelected ? item.swiftUIColor.opacity(0.85) : Color.clear,
                         radius: 6
                     )
 
@@ -187,19 +231,19 @@ public struct RadialMenuView: View {
                     .lineLimit(1)
             }
             .position(x: posX, y: posY)
-            .scaleEffect(isSelected ? 1.12 : 1.0)
+            .scaleEffect(isSelected ? 1.14 : 1.0)
         }
         .offset(x: offsetX, y: offsetY)
         .shadow(
-            color: Color.black.opacity(isSelected ? (isDark ? 0.4 : 0.22) : (isDark ? 0.18 : 0.08)),
-            radius: isSelected ? 12 : 4,
+            color: Color.black.opacity(isSelected ? (isDark ? 0.35 : 0.2) : 0),
+            radius: isSelected ? 10 : 0,
             x: 0,
-            y: isSelected ? 4 : 2
+            y: isSelected ? 4 : 0
         )
         .zIndex(isSelected ? 20 : 1)
     }
 
-    // MARK: - Center Glass Hub View
+    // MARK: - Center Crystal Glass Hub View
     private var centerHubView: some View {
         let innerR = CGFloat(appearance.innerRadius)
         let selectedItem = hoveredIndex.flatMap { items.indices.contains($0) ? items[$0] : nil }
@@ -207,35 +251,35 @@ public struct RadialMenuView: View {
         return ZStack {
             // Frosted Center Orb with adaptive vibrancy
             VisualEffectBlur(
-                material: isDark ? .underWindowBackground : .menu,
+                material: isDark ? .underWindowBackground : .popover,
                 blendingMode: .behindWindow,
                 state: .active,
                 appearance: NSAppearance(named: isDark ? .vibrantDark : .vibrantLight)
             )
             .clipShape(Circle())
             .frame(width: innerR * 2, height: innerR * 2)
-            .opacity(isDark ? 0.75 : 0.85)
+            .opacity(isDark ? 0.78 : 0.88)
 
             Circle()
-                .fill(isDark ? Color.black.opacity(0.2) : Color.white.opacity(0.5))
+                .fill(isDark ? Color.black.opacity(0.22) : Color.white.opacity(0.55))
                 .frame(width: innerR * 2, height: innerR * 2)
 
-            // Center Specular Bevel Border
+            // Glossy Specular Bevel Border (Reflects light)
             Circle()
                 .strokeBorder(
                     LinearGradient(
                         colors: [
-                            selectedItem != nil ? selectedItem!.swiftUIColor : (isDark ? Color.white.opacity(0.45) : Color.black.opacity(0.2)),
-                            selectedItem != nil ? selectedItem!.swiftUIColor.opacity(0.4) : (isDark ? Color.white.opacity(0.15) : Color.black.opacity(0.08))
+                            selectedItem != nil ? selectedItem!.swiftUIColor : (isDark ? Color.white.opacity(0.65) : Color.white.opacity(0.9)),
+                            selectedItem != nil ? selectedItem!.swiftUIColor.opacity(0.5) : (isDark ? Color.white.opacity(0.15) : Color.black.opacity(0.12))
                         ],
                         startPoint: .topLeading,
                         endPoint: .bottomTrailing
                     ),
-                    lineWidth: selectedItem != nil ? 2.4 : 1.2
+                    lineWidth: selectedItem != nil ? 2.4 : 1.5
                 )
                 .frame(width: innerR * 2, height: innerR * 2)
                 .shadow(
-                    color: selectedItem?.swiftUIColor.opacity(0.65) ?? Color.clear,
+                    color: selectedItem?.swiftUIColor.opacity(0.7) ?? Color.clear,
                     radius: 10
                 )
 
