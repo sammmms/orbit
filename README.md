@@ -1,6 +1,15 @@
 # 🪐 Orbit
 
-A lightweight, blazing-fast native radial menu (pie menu) for macOS written in **Swift & SwiftUI**.
+<p align="center">
+  <img src="assets/banner_refs/01_orbit_app_icon.png" width="128" alt="Orbit App Icon" />
+  <br />
+  <strong>Blazing-fast native radial menu & clipboard hub for macOS</strong>
+  <br />
+  <br />
+  <img src="assets/banner_refs/04_radial_menu_hover_clips.png" width="420" alt="Orbit Radial HUD" />
+</p>
+
+A lightweight, blazing-fast native radial menu (pie menu) and clipboard manager for macOS written in **Swift & SwiftUI**.
 
 Hold a hotkey or middle-click anywhere on macOS, and a frosted-glass radial wheel pops up directly under your cursor. Move your mouse towards any slice and release to launch apps, run custom terminal scripts, snip & OCR text from your screen, or control media with zero friction.
 

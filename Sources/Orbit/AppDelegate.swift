@@ -49,12 +49,41 @@ public final class AppDelegate: NSObject, NSApplicationDelegate {
             }
         }
         DistributedNotificationCenter.default().addObserver(
+            forName: NSNotification.Name("id.bizapps.orbit.openRadial"),
+            object: nil,
+            queue: .main
+        ) { _ in
+            Task { @MainActor in
+                if !RadialMenuController.shared.isOpen {
+                    RadialMenuController.shared.open()
+                }
+            }
+        }
+        DistributedNotificationCenter.default().addObserver(
+            forName: NSNotification.Name("id.bizapps.orbit.closeRadial"),
+            object: nil,
+            queue: .main
+        ) { _ in
+            Task { @MainActor in
+                RadialMenuController.shared.close()
+            }
+        }
+        DistributedNotificationCenter.default().addObserver(
             forName: NSNotification.Name("id.bizapps.orbit.showClipboard"),
             object: nil,
             queue: .main
         ) { _ in
             Task { @MainActor in
                 ClipboardPanelController.shared.show()
+            }
+        }
+        DistributedNotificationCenter.default().addObserver(
+            forName: NSNotification.Name("id.bizapps.orbit.closeClipboard"),
+            object: nil,
+            queue: .main
+        ) { _ in
+            Task { @MainActor in
+                ClipboardPanelController.shared.close()
             }
         }
 
