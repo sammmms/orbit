@@ -42,50 +42,14 @@ public struct RadialMenuView: View {
 
     public var body: some View {
         ZStack {
-            // MARK: - 1. Theme-Adaptive High-Transparency Glass Backing
-            let discDiameter = CGFloat(appearance.radius * 2 + 10)
-
-            ZStack {
-                // Adaptive system blur:
-                // Dark Mode: Smoked dark glass (.underWindowBackground + vibrantDark)
-                // Light Mode: Clean translucent glass (.menu + vibrantLight)
-                VisualEffectBlur(
-                    material: isDark ? .underWindowBackground : .menu,
-                    blendingMode: .behindWindow,
-                    state: .active,
-                    appearance: NSAppearance(named: isDark ? .vibrantDark : .vibrantLight)
-                )
-                .clipShape(Circle())
-                .opacity(isDark ? 0.65 : 0.72)
-
-                // Adaptive subtle tint for high contrast on any wallpaper
-                Circle()
-                    .fill(isDark ? Color.black.opacity(0.18) : Color.white.opacity(0.4))
-
-                // Outer Glass Specular Bevel Border
-                Circle()
-                    .strokeBorder(
-                        LinearGradient(
-                            colors: isDark
-                                ? [Color.white.opacity(0.38), Color.white.opacity(0.12), Color.white.opacity(0.06), Color.white.opacity(0.22)]
-                                : [Color.black.opacity(0.18), Color.white.opacity(0.4), Color.black.opacity(0.08)],
-                            startPoint: .topLeading,
-                            endPoint: .bottomTrailing
-                        ),
-                        lineWidth: 1.2
-                    )
-            }
-            .frame(width: discDiameter, height: discDiameter)
-            // Soft native macOS drop shadow
-            .shadow(color: Color.black.opacity(isDark ? 0.4 : 0.22), radius: 28, x: 0, y: 14)
-            .shadow(color: Color.black.opacity(isDark ? 0.2 : 0.1), radius: 8, x: 0, y: 3)
-
-            // MARK: - 2. Triangular Pie Slices with Bouncy Spring Physics
+            // MARK: - 1. Triangular Pie Slices
+            // Each slice owns its own dynamic frosted glass backing, outline, and shadow.
+            // NO static under-plate circle! When a slice expands, its entire glass body pops outward!
             ForEach(Array(items.enumerated()), id: \.element.id) { index, item in
                 sliceWedgeView(index: index, item: item)
             }
 
-            // MARK: - 3. Center Glass Hub (Orb)
+            // MARK: - 2. Center Glass Hub (Orb)
             centerHubView
         }
         .frame(width: size, height: size)
@@ -119,7 +83,7 @@ public struct RadialMenuView: View {
         )
     }
 
-    // MARK: - Triangular / Annular Wedge Slice View with Bouncy Expansion
+    // MARK: - Triangular / Annular Wedge Slice View with Dynamic Glass Background
     @ViewBuilder
     private func sliceWedgeView(index: Int, item: RadialItem) -> some View {
         let isSelected = hoveredIndex == index
@@ -128,12 +92,12 @@ public struct RadialMenuView: View {
         let midAngleDeg = -90.0 + (Double(index) * step)
 
         // Bouncy angular expansion when hovered
-        let gapDeg = isSelected ? 1.2 : 2.4
+        let gapDeg = isSelected ? 1.0 : 2.2
         let angularExpansion = isSelected ? 1.6 : 0.0
         let startAngleDeg = midAngleDeg - (step / 2.0) + (gapDeg / 2.0) - angularExpansion
         let endAngleDeg = midAngleDeg + (step / 2.0) - (gapDeg / 2.0) + angularExpansion
 
-        // Physical radial expansion when hovered (pops 16pt outward!)
+        // Physical radial expansion when hovered (pops 16pt outward, and 4pt inward!)
         let innerR = isSelected ? CGFloat(appearance.innerRadius - 4) : CGFloat(appearance.innerRadius)
         let outerR = isSelected ? CGFloat(appearance.radius + 16) : CGFloat(appearance.radius)
 
@@ -143,36 +107,44 @@ public struct RadialMenuView: View {
         let posX = center.x + CGFloat(cos(rad)) * midR
         let posY = center.y + CGFloat(sin(rad)) * midR
 
+        let sectorShape = AnnularSector(
+            startAngle: Angle(degrees: startAngleDeg),
+            endAngle: Angle(degrees: endAngleDeg),
+            innerRadius: innerR,
+            outerRadius: outerR
+        )
+
         ZStack {
-            // Triangular / Annular Sector Shape
-            AnnularSector(
-                startAngle: Angle(degrees: startAngleDeg),
-                endAngle: Angle(degrees: endAngleDeg),
-                innerRadius: innerR + 1,
-                outerRadius: outerR
+            // A. Frosted Glass Backing FOR THIS SPECIFIC WEDGE
+            // Dynamically follows the wedge shape and expands along with it!
+            VisualEffectBlur(
+                material: isDark ? .underWindowBackground : .menu,
+                blendingMode: .behindWindow,
+                state: .active,
+                appearance: NSAppearance(named: isDark ? .vibrantDark : .vibrantLight)
             )
-            .fill(
-                isSelected
-                    ? AnyShapeStyle(
-                        LinearGradient(
-                            colors: [
-                                item.swiftUIColor.opacity(isDark ? 0.45 : 0.35),
-                                item.swiftUIColor.opacity(isDark ? 0.20 : 0.12)
-                            ],
-                            startPoint: .topLeading,
-                            endPoint: .bottomTrailing
+            .clipShape(sectorShape)
+            .opacity(isDark ? (isSelected ? 0.85 : 0.65) : (isSelected ? 0.9 : 0.72))
+
+            // B. Translucent Tint & Accent Gradient
+            sectorShape
+                .fill(
+                    isSelected
+                        ? AnyShapeStyle(
+                            LinearGradient(
+                                colors: [
+                                    item.swiftUIColor.opacity(isDark ? 0.48 : 0.38),
+                                    item.swiftUIColor.opacity(isDark ? 0.22 : 0.14)
+                                ],
+                                startPoint: .topLeading,
+                                endPoint: .bottomTrailing
+                            )
                         )
-                    )
-                    : AnyShapeStyle(isDark ? Color.white.opacity(0.04) : Color.black.opacity(0.03))
-            )
-            // Triangular Outline with Bouncy Glow
-            .overlay(
-                AnnularSector(
-                    startAngle: Angle(degrees: startAngleDeg),
-                    endAngle: Angle(degrees: endAngleDeg),
-                    innerRadius: innerR + 1,
-                    outerRadius: outerR
+                        : AnyShapeStyle(isDark ? Color.black.opacity(0.18) : Color.white.opacity(0.35))
                 )
+
+            // C. Triangular Outline with Bouncy Glow
+            sectorShape
                 .stroke(
                     isSelected
                         ? item.swiftUIColor
@@ -183,9 +155,8 @@ public struct RadialMenuView: View {
                     color: isSelected ? item.swiftUIColor.opacity(0.9) : Color.clear,
                     radius: isSelected ? 14 : 0
                 )
-            )
 
-            // Icon and Label directly inside wedge with Bouncy Scale
+            // D. Icon and Label directly inside wedge with Bouncy Scale
             VStack(spacing: 3) {
                 Image(systemName: item.icon)
                     .font(.system(size: isSelected ? 23 : 18, weight: isSelected ? .bold : .semibold))
@@ -204,15 +175,22 @@ public struct RadialMenuView: View {
                     .foregroundColor(
                         isSelected
                             ? (isDark ? .white : .black)
-                            : (isDark ? .white.opacity(0.9) : Color.black.opacity(0.8))
+                            : (isDark ? .white.opacity(0.9) : Color.black.opacity(0.85))
                     )
                     .lineLimit(1)
             }
             .position(x: posX, y: posY)
             .scaleEffect(isSelected ? 1.24 : 1.0)
         }
+        // Native drop shadow follows the actual wedge shape
+        .shadow(
+            color: Color.black.opacity(isSelected ? (isDark ? 0.45 : 0.25) : (isDark ? 0.22 : 0.1)),
+            radius: isSelected ? 18 : 6,
+            x: 0,
+            y: isSelected ? 8 : 2
+        )
         .scaleEffect(isSelected ? 1.06 : 1.0, anchor: .center)
-        .zIndex(isSelected ? 10 : 1)
+        .zIndex(isSelected ? 20 : 1)
     }
 
     // MARK: - Center Glass Hub View
@@ -291,6 +269,7 @@ public struct RadialMenuView: View {
         }
         .contentShape(Circle())
         .scaleEffect(selectedItem != nil ? 1.05 : 1.0)
+        .shadow(color: Color.black.opacity(isDark ? 0.35 : 0.15), radius: 10, x: 0, y: 4)
         .onTapGesture {
             onCancel()
         }

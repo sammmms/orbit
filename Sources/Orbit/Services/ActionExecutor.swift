@@ -154,9 +154,20 @@ public final class ActionExecutor: Sendable {
         }
     }
 
-    // MARK: - Native macOS Media Key (NX_KEYTYPE_PLAY = 16)
+    // MARK: - Native macOS Media Remote (MRMediaRemoteSendCommand)
     private func toggleMediaPlayback() {
-        // Simulates the physical hardware media Play/Pause key globally across macOS
+        // 1. Apple's native private MediaRemote framework (controls Spotify, YouTube in Safari/Chrome, Music, Podcasts, etc.)
+        let mediaRemoteBundle = CFBundleCreate(kCFAllocatorDefault, NSURL(fileURLWithPath: "/System/Library/PrivateFrameworks/MediaRemote.framework"))
+        if let bundle = mediaRemoteBundle,
+           let functionPointer = CFBundleGetFunctionPointerForName(bundle, "MRMediaRemoteSendCommand" as CFString) {
+            typealias MRMediaRemoteSendCommandFunction = @convention(c) (Int32, AnyObject?) -> Bool
+            let sendCommand = unsafeBitCast(functionPointer, to: MRMediaRemoteSendCommandFunction.self)
+            // 2 = kMRTogglePlayPause
+            let success = sendCommand(2, nil)
+            print("[Orbit] MRMediaRemoteSendCommand(TogglePlayPause) result: \(success)")
+        }
+
+        // 2. Hardware media key simulation fallback
         func postMediaKey(down: Bool) {
             let key: Int32 = 16 // NX_KEYTYPE_PLAY
             let flags: NSEvent.ModifierFlags = down ? .init(rawValue: 0xa00) : .init(rawValue: 0xb00)
@@ -176,7 +187,25 @@ public final class ActionExecutor: Sendable {
         }
         postMediaKey(down: true)
         postMediaKey(down: false)
-        print("[Orbit] Posted native macOS Media Play/Pause key.")
+
+        // 3. AppleScript fallback for Spotify or Apple Music
+        DispatchQueue.global(qos: .userInitiated).async {
+            let scriptSource = """
+            tell application "System Events"
+                set isSpotifyRunning to (exists (processes where name is "Spotify"))
+                set isMusicRunning to (exists (processes where name is "Music"))
+            end tell
+            if isSpotifyRunning then
+                tell application "Spotify" to playpause
+            else if isMusicRunning then
+                tell application "Music" to playpause
+            end if
+            """
+            if let appleScript = NSAppleScript(source: scriptSource) {
+                var errorInfo: NSDictionary?
+                appleScript.executeAndReturnError(&errorInfo)
+            }
+        }
     }
 
     // MARK: - Clipboard History
