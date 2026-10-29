@@ -106,56 +106,68 @@ public final class ClipboardHistoryManager: ObservableObject {
         // 1. Hide Orbit panel immediately
         ClipboardPanelController.shared.closeImmediately()
 
-        // 2. Activate target app and paste via AppleScript & Hardware event
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) {
-            if let app = appToPaste, let bundleID = app.bundleIdentifier, bundleID != myBundleID {
-                print("[Orbit Clipboard] Activating target: \(app.localizedName ?? "") (\(bundleID))")
-                app.activate(options: [.activateAllWindows])
-
-                let script = """
-                tell application id "\(bundleID)" to activate
-                delay 0.08
-                tell application "System Events" to keystroke "v" using command down
-                """
-                var err: NSDictionary?
-                let res = NSAppleScript(source: script)?.executeAndReturnError(&err)
-                print("[Orbit Clipboard] AppleScript res: \(res != nil), err: \(err?.description ?? "none")")
-
-                DispatchQueue.main.asyncAfter(deadline: .now() + 0.10) {
-                    self.postHardwareCmdV()
-                }
-            } else {
-                print("[Orbit Clipboard] Fallback activation...")
-                appToPaste?.activate(options: [.activateAllWindows])
-                let script = """
-                delay 0.08
-                tell application "System Events" to keystroke "v" using command down
-                """
+        // 2. Reactivate target application using dual activation (AppleScript open-app event + NSWorkspace.openApplication)
+        if let app = appToPaste {
+            print("[Orbit Clipboard] Activating target: \(app.localizedName ?? "") (\(app.bundleIdentifier ?? ""))")
+            if let bundleID = app.bundleIdentifier {
+                let script = "tell application id \"\(bundleID)\" to activate"
                 NSAppleScript(source: script)?.executeAndReturnError(nil)
-                DispatchQueue.main.asyncAfter(deadline: .now() + 0.10) {
-                    self.postHardwareCmdV()
-                }
             }
+            if let url = app.bundleURL {
+                let config = NSWorkspace.OpenConfiguration()
+                config.activates = true
+                NSWorkspace.shared.openApplication(at: url, configuration: config, completionHandler: nil)
+            }
+        }
+
+        // 3. Perform proven native CoreGraphics Cmd+V keystroke (Maccy / Flycut engine) after 150ms settle delay
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) {
+            self.postNativePasteKeystroke()
         }
     }
 
-    private func postHardwareCmdV() {
-        let source = CGEventSource(stateID: .combinedSessionState)
-        let vKey: CGKeyCode = 9 // kVK_ANSI_V
-
-        guard let keyDown = CGEvent(keyboardEventSource: source, virtualKey: vKey, keyDown: true),
-              let keyUp = CGEvent(keyboardEventSource: source, virtualKey: vKey, keyDown: false) else {
+    private func postNativePasteKeystroke() {
+        let isTrusted = AXIsProcessTrusted()
+        if !isTrusted {
+            print("[Orbit Clipboard] Accessibility not trusted. Prompting user...")
+            let options = ["AXTrustedCheckOptionPrompt": true as CFBoolean] as CFDictionary
+            AXIsProcessTrustedWithOptions(options)
+            if let url = URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_Accessibility") {
+                NSWorkspace.shared.open(url)
+            }
             return
         }
 
-        keyDown.flags = .maskCommand
-        keyUp.flags = .maskCommand
+        // 1. AppleScript keystroke
+        let script = "tell application \"System Events\" to keystroke \"v\" using command down"
+        NSAppleScript(source: script)?.executeAndReturnError(nil)
 
-        keyDown.post(tap: .cghidEventTap)
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.02) {
-            keyUp.post(tap: .cghidEventTap)
+        // 2. macOS AppKit requires NX_DEVICELCMDKEYMASK (0x000008) in addition to .maskCommand
+        // to recognize Command modifier when simulating Cmd+V without physical keypress.
+        let cmdFlag = CGEventFlags(rawValue: CGEventFlags.maskCommand.rawValue | 0x000008)
+        let source = CGEventSource(stateID: .combinedSessionState)
+        source?.setLocalEventsFilterDuringSuppressionState(
+            [.permitLocalMouseEvents, .permitSystemDefinedEvents],
+            state: .eventSuppressionStateSuppressionInterval
+        )
+
+        let vKeyCode: CGKeyCode = 9 // ANSI V
+
+        guard let keyVDown = CGEvent(keyboardEventSource: source, virtualKey: vKeyCode, keyDown: true),
+              let keyVUp = CGEvent(keyboardEventSource: source, virtualKey: vKeyCode, keyDown: false) else {
+            print("[Orbit Clipboard] Failed to create CGEvent for paste")
+            return
         }
-        print("[Orbit Clipboard] Posted hardware Cmd+V tap")
+
+        keyVDown.flags = cmdFlag
+        keyVUp.flags = cmdFlag
+
+        keyVDown.post(tap: .cgSessionEventTap)
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.02) {
+            keyVUp.post(tap: .cgSessionEventTap)
+        }
+
+        print("[Orbit Clipboard] Successfully posted native Cmd+V to cgSessionEventTap!")
     }
 
     private func saveToDisk() {

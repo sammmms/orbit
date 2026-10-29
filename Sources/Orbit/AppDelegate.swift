@@ -14,6 +14,11 @@ public final class AppDelegate: NSObject, NSApplicationDelegate {
         // Run as background menu bar app (no dock icon clutter)
         NSApp.setActivationPolicy(.accessory)
 
+        // Check & prompt for Accessibility permissions (needed to simulate Cmd+V paste)
+        let options = ["AXTrustedCheckOptionPrompt": true as CFBoolean] as CFDictionary
+        let trusted = AXIsProcessTrustedWithOptions(options)
+        print("[Orbit] Accessibility permission trusted on launch: \(trusted)")
+
         // Ensure configuration is loaded or created
         _ = ConfigManager.shared
 
@@ -32,6 +37,26 @@ public final class AppDelegate: NSObject, NSApplicationDelegate {
 
         // Start listening to global event tap (for middle mouse & option hold)
         EventTapManager.shared.start()
+
+        // Distributed notifications for automation & external triggers
+        DistributedNotificationCenter.default().addObserver(
+            forName: NSNotification.Name("id.bizapps.orbit.trigger"),
+            object: nil,
+            queue: .main
+        ) { _ in
+            Task { @MainActor in
+                RadialMenuController.shared.toggle()
+            }
+        }
+        DistributedNotificationCenter.default().addObserver(
+            forName: NSNotification.Name("id.bizapps.orbit.showClipboard"),
+            object: nil,
+            queue: .main
+        ) { _ in
+            Task { @MainActor in
+                ClipboardPanelController.shared.show()
+            }
+        }
 
         print("[Orbit] Running! Press ⌥ + Space, hold Option, or click Middle Mouse Button to trigger.")
     }

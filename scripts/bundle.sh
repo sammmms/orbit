@@ -55,6 +55,8 @@ cat << 'EOF' > "$APP_BUNDLE/Contents/Info.plist"
     <true/>
     <key>NSSupportsAutomaticGraphicsSwitching</key>
     <true/>
+    <key>NSAppleEventsUsageDescription</key>
+    <string>Orbit uses automation to paste clipboard snippets into active apps.</string>
 </dict>
 </plist>
 EOF
