@@ -11,8 +11,15 @@ public final class ClipboardPanelController: ObservableObject {
     private init() {}
 
     public func show() {
-        // Capture currently frontmost app before opening clipboard window
-        self.previousApp = NSWorkspace.shared.frontmostApplication
+        // Capture currently frontmost app before opening clipboard window, fallback to AppState
+        let myBundleID = Bundle.main.bundleIdentifier ?? "id.bizapps.orbit"
+        if let front = NSWorkspace.shared.frontmostApplication,
+           front.bundleIdentifier != myBundleID,
+           front.activationPolicy == .regular {
+            self.previousApp = front
+        } else {
+            self.previousApp = AppState.shared.lastExternalApp
+        }
 
         if panel == nil {
             let p = NSPanel(
@@ -34,9 +41,13 @@ public final class ClipboardPanelController: ObservableObject {
 
         let contentView = ClipboardHistoryView(
             onSelect: { [weak self] entry in
-                let targetApp = self?.previousApp
+                let myBundleID = Bundle.main.bundleIdentifier ?? "id.bizapps.orbit"
+                var target = self?.previousApp
+                if target == nil || target?.bundleIdentifier == myBundleID {
+                    target = AppState.shared.lastExternalApp
+                }
                 self?.closeImmediately()
-                ClipboardHistoryManager.shared.selectAndPaste(entry: entry, targetApp: targetApp)
+                ClipboardHistoryManager.shared.selectAndPaste(entry: entry, targetApp: target)
             },
             onClose: { [weak self] in
                 self?.close()

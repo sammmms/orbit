@@ -39,6 +39,9 @@ public final class RadialMenuController: ObservableObject {
         guard let panel = panel else { return }
         self.isHoldMode = holdMode
 
+        // Capture frontmost app before Orbit's overlay becomes key
+        AppState.shared.captureCurrentExternalApp()
+
         let mouseLoc = NSEvent.mouseLocation
         let targetScreen = NSScreen.screens.first(where: { NSPointInRect(mouseLoc, $0.frame) })
             ?? NSScreen.main

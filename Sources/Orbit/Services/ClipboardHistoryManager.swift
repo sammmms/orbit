@@ -83,7 +83,11 @@ public final class ClipboardHistoryManager: ObservableObject {
     }
 
     public func selectAndPaste(entry: ClipboardEntry, targetApp: NSRunningApplication? = nil) {
-        let appToPaste = targetApp ?? AppState.shared.lastExternalApp
+        let myBundleID = Bundle.main.bundleIdentifier ?? "id.bizapps.orbit"
+        var appToPaste = targetApp
+        if appToPaste == nil || appToPaste?.bundleIdentifier == myBundleID {
+            appToPaste = AppState.shared.lastExternalApp
+        }
 
         let pasteboard = NSPasteboard.general
         pasteboard.clearContents()
@@ -102,18 +106,24 @@ public final class ClipboardHistoryManager: ObservableObject {
         // 1. Re-activate the target application so it regains window focus
         if let app = appToPaste {
             print("[Orbit Clipboard] Activating target application: \(app.localizedName ?? "") (\(app.bundleIdentifier ?? ""))")
-            app.activate()
+            app.activate(options: [.activateAllWindows])
+            if let bundleID = app.bundleIdentifier {
+                let script = "tell application id \"\(bundleID)\" to activate"
+                NSAppleScript(source: script)?.executeAndReturnError(nil)
+            }
         }
 
-        // 2. Poll until target application is frontmost, then simulate full Cmd+V sequence
+        // 2. Poll until target application is frontmost, then simulate clean Cmd+V sequence
         func performPaste(attemptsLeft: Int) {
             let frontmost = NSWorkspace.shared.frontmostApplication
             let isTargetFrontmost = appToPaste == nil || frontmost?.bundleIdentifier == appToPaste?.bundleIdentifier
 
             if isTargetFrontmost || attemptsLeft <= 0 {
-                print("[Orbit Clipboard] Target app is frontmost (\(frontmost?.localizedName ?? "")). Posting Cmd+V...")
-                self.postHardwareCmdV()
-                self.postAppleScriptCmdV()
+                print("[Orbit Clipboard] Target app is frontmost (\(frontmost?.localizedName ?? "")). Settle & posting Cmd+V...")
+                // Settle delay: give frontmost app's window/caret 60ms to accept key input
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.06) {
+                    self.postCleanCmdV()
+                }
             } else {
                 DispatchQueue.main.asyncAfter(deadline: .now() + 0.03) {
                     performPaste(attemptsLeft: attemptsLeft - 1)
@@ -127,44 +137,22 @@ public final class ClipboardHistoryManager: ObservableObject {
         }
     }
 
-    private func postHardwareCmdV() {
+    private func postCleanCmdV() {
         let source = CGEventSource(stateID: .combinedSessionState)
         let vKey: CGKeyCode = 9 // kVK_ANSI_V
-        let cmdKey: CGKeyCode = 55 // kVK_Command
 
-        guard let cmdDown = CGEvent(keyboardEventSource: source, virtualKey: cmdKey, keyDown: true),
-              let vDown = CGEvent(keyboardEventSource: source, virtualKey: vKey, keyDown: true),
-              let vUp = CGEvent(keyboardEventSource: source, virtualKey: vKey, keyDown: false),
-              let cmdUp = CGEvent(keyboardEventSource: source, virtualKey: cmdKey, keyDown: false) else {
+        guard let keyDown = CGEvent(keyboardEventSource: source, virtualKey: vKey, keyDown: true),
+              let keyUp = CGEvent(keyboardEventSource: source, virtualKey: vKey, keyDown: false) else {
             return
         }
 
-        cmdDown.flags = .maskCommand
-        vDown.flags = .maskCommand
-        vUp.flags = .maskCommand
-        cmdUp.flags = []
+        keyDown.flags = .maskCommand
+        keyUp.flags = .maskCommand
 
-        // Post to both cghidEventTap and cgSessionEventTap
-        cmdDown.post(tap: .cghidEventTap)
-        vDown.post(tap: .cghidEventTap)
-        vUp.post(tap: .cghidEventTap)
-        cmdUp.post(tap: .cghidEventTap)
-
-        cmdDown.post(tap: .cgSessionEventTap)
-        vDown.post(tap: .cgSessionEventTap)
-        vUp.post(tap: .cgSessionEventTap)
-        cmdUp.post(tap: .cgSessionEventTap)
-    }
-
-    private func postAppleScriptCmdV() {
-        let script = "tell application \"System Events\" to keystroke \"v\" using command down"
-        if let appleScript = NSAppleScript(source: script) {
-            var error: NSDictionary?
-            appleScript.executeAndReturnError(&error)
-            if error == nil {
-                print("[Orbit Clipboard] AppleScript keystroke success!")
-            }
-        }
+        keyDown.post(tap: .cghidEventTap)
+        usleep(25000) // 25ms key press duration
+        keyUp.post(tap: .cghidEventTap)
+        print("[Orbit Clipboard] Successfully posted Cmd+V via CGEvent tap")
     }
 
     private func saveToDisk() {

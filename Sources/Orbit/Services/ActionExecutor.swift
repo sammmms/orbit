@@ -156,7 +156,7 @@ public final class ActionExecutor: Sendable {
 
     // MARK: - Native macOS Media Remote (MRMediaRemoteSendCommand)
     private func toggleMediaPlayback() {
-        // 1. Apple's native private MediaRemote framework (controls Spotify, YouTube in Safari/Chrome, Music, Podcasts, etc.)
+        // 1. Apple's native private MediaRemote framework (controls Spotify, YouTube in Safari/Chrome/Zen, Apple Music, Podcasts, VLC, etc.)
         let mediaRemoteBundle = CFBundleCreate(kCFAllocatorDefault, NSURL(fileURLWithPath: "/System/Library/PrivateFrameworks/MediaRemote.framework"))
         if let bundle = mediaRemoteBundle,
            let functionPointer = CFBundleGetFunctionPointerForName(bundle, "MRMediaRemoteSendCommand" as CFString) {
@@ -167,7 +167,7 @@ public final class ActionExecutor: Sendable {
             print("[Orbit] MRMediaRemoteSendCommand(TogglePlayPause) result: \(success)")
         }
 
-        // 2. Hardware media key simulation fallback
+        // 2. Hardware media key simulation fallback (NX_KEYTYPE_PLAY)
         func postMediaKey(down: Bool) {
             let key: Int32 = 16 // NX_KEYTYPE_PLAY
             let flags: NSEvent.ModifierFlags = down ? .init(rawValue: 0xa00) : .init(rawValue: 0xb00)
@@ -187,25 +187,6 @@ public final class ActionExecutor: Sendable {
         }
         postMediaKey(down: true)
         postMediaKey(down: false)
-
-        // 3. AppleScript fallback for Spotify or Apple Music
-        DispatchQueue.global(qos: .userInitiated).async {
-            let scriptSource = """
-            tell application "System Events"
-                set isSpotifyRunning to (exists (processes where name is "Spotify"))
-                set isMusicRunning to (exists (processes where name is "Music"))
-            end tell
-            if isSpotifyRunning then
-                tell application "Spotify" to playpause
-            else if isMusicRunning then
-                tell application "Music" to playpause
-            end if
-            """
-            if let appleScript = NSAppleScript(source: scriptSource) {
-                var errorInfo: NSDictionary?
-                appleScript.executeAndReturnError(&errorInfo)
-            }
-        }
     }
 
     // MARK: - Clipboard History
@@ -243,20 +224,11 @@ public final class ActionExecutor: Sendable {
         // Strip formatting by re-writing only plain string
         pasteboard.clearContents()
         pasteboard.setString(currentText, forType: .string)
-        NSSound(named: "Pop")?.play()
 
-        // Simulate Cmd+V
-        DispatchQueue.global(qos: .userInitiated).asyncAfter(deadline: .now() + 0.1) {
-            let src = CGEventSource(stateID: .combinedSessionState)
-            let vKeyCode: CGKeyCode = 9 // 'v'
-            if let keyDown = CGEvent(keyboardEventSource: src, virtualKey: vKeyCode, keyDown: true),
-               let keyUp = CGEvent(keyboardEventSource: src, virtualKey: vKeyCode, keyDown: false) {
-                keyDown.flags = .maskCommand
-                keyUp.flags = .maskCommand
-                keyDown.post(tap: .cghidEventTap)
-                keyUp.post(tap: .cghidEventTap)
-            }
-        }
+        ClipboardHistoryManager.shared.selectAndPaste(
+            entry: ClipboardEntry(text: currentText),
+            targetApp: AppState.shared.lastExternalApp
+        )
     }
 
     // MARK: - Lock Mac
