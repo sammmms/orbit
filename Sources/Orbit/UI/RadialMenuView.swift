@@ -42,9 +42,8 @@ public struct RadialMenuView: View {
 
     public var body: some View {
         ZStack {
-            // MARK: - 1. Triangular Pie Slices
-            // Each slice owns its own dynamic frosted glass backing, outline, and shadow.
-            // NO static under-plate circle! When a slice expands, its entire glass body pops outward!
+            // MARK: - 1. Triangular Pie Slices with Radial Pop
+            // Slices NEVER overlap their neighbors: clean angular sectors with radial offset pop
             ForEach(Array(items.enumerated()), id: \.element.id) { index, item in
                 sliceWedgeView(index: index, item: item)
             }
@@ -56,8 +55,8 @@ public struct RadialMenuView: View {
         .scaleEffect(isVisible ? 1.0 : 0.88)
         .opacity(isVisible ? 1.0 : 0.0)
         .animation(.spring(response: 0.24, dampingFraction: 0.72), value: isVisible)
-        // High-energy, bouncy spring physics for hovering
-        .animation(.spring(response: 0.28, dampingFraction: 0.52, blendDuration: 0.05), value: hoveredIndex)
+        // Bouncy spring physics for smooth radial pop
+        .animation(.spring(response: 0.28, dampingFraction: 0.55), value: hoveredIndex)
         .onAppear {
             isVisible = true
         }
@@ -83,7 +82,7 @@ public struct RadialMenuView: View {
         )
     }
 
-    // MARK: - Triangular / Annular Wedge Slice View with Dynamic Glass Background
+    // MARK: - Triangular / Annular Wedge Slice View with Radial Offset Pop
     @ViewBuilder
     private func sliceWedgeView(index: Int, item: RadialItem) -> some View {
         let isSelected = hoveredIndex == index
@@ -91,21 +90,29 @@ public struct RadialMenuView: View {
         let step = 360.0 / Double(count)
         let midAngleDeg = -90.0 + (Double(index) * step)
 
-        // Bouncy angular expansion when hovered
-        let gapDeg = isSelected ? 1.0 : 2.2
-        let angularExpansion = isSelected ? 1.6 : 0.0
-        let startAngleDeg = midAngleDeg - (step / 2.0) + (gapDeg / 2.0) - angularExpansion
-        let endAngleDeg = midAngleDeg + (step / 2.0) - (gapDeg / 2.0) + angularExpansion
+        // Strict, consistent angular borders with 2.5° gap (GUARANTEES ZERO OVERLAP WITH NEIGHBORS!)
+        let gapDeg = 2.5
+        let startAngleDeg = midAngleDeg - (step / 2.0) + (gapDeg / 2.0)
+        let endAngleDeg = midAngleDeg + (step / 2.0) - (gapDeg / 2.0)
 
-        // Physical radial expansion when hovered (pops 16pt outward, and 4pt inward!)
-        let innerR = isSelected ? CGFloat(appearance.innerRadius - 4) : CGFloat(appearance.innerRadius)
-        let outerR = isSelected ? CGFloat(appearance.radius + 16) : CGFloat(appearance.radius)
+        let innerR = CGFloat(appearance.innerRadius)
+        let outerR = CGFloat(appearance.radius)
+
+        // Radial direction vector
+        let rad = midAngleDeg * .pi / 180.0
+        let dirX = CGFloat(cos(rad))
+        let dirY = CGFloat(sin(rad))
+
+        // Radial pop distance: slides cleanly outward along its spoke by 8pt
+        // Moving outward widens the spacing, so collision with neighbors or hub is IMPOSSIBLE!
+        let popDistance: CGFloat = isSelected ? 8.0 : 0.0
+        let offsetX = dirX * popDistance
+        let offsetY = dirY * popDistance
 
         // Centroid position for the icon and label
-        let rad = midAngleDeg * .pi / 180.0
-        let midR = (innerR + outerR) / 2.0 + (isSelected ? 5 : 0)
-        let posX = center.x + CGFloat(cos(rad)) * midR
-        let posY = center.y + CGFloat(sin(rad)) * midR
+        let midR = (innerR + outerR) / 2.0
+        let posX = center.x + dirX * midR
+        let posY = center.y + dirY * midR
 
         let sectorShape = AnnularSector(
             startAngle: Angle(degrees: startAngleDeg),
@@ -115,8 +122,7 @@ public struct RadialMenuView: View {
         )
 
         ZStack {
-            // A. Frosted Glass Backing FOR THIS SPECIFIC WEDGE
-            // Dynamically follows the wedge shape and expands along with it!
+            // A. Frosted Glass Backing for this wedge
             VisualEffectBlur(
                 material: isDark ? .underWindowBackground : .menu,
                 blendingMode: .behindWindow,
@@ -149,25 +155,25 @@ public struct RadialMenuView: View {
                     isSelected
                         ? item.swiftUIColor
                         : (isDark ? Color.white.opacity(0.24) : Color.black.opacity(0.18)),
-                    lineWidth: isSelected ? 3.0 : 1.2
+                    lineWidth: isSelected ? 2.5 : 1.2
                 )
                 .shadow(
-                    color: isSelected ? item.swiftUIColor.opacity(0.9) : Color.clear,
-                    radius: isSelected ? 14 : 0
+                    color: isSelected ? item.swiftUIColor.opacity(0.85) : Color.clear,
+                    radius: isSelected ? 10 : 0
                 )
 
-            // D. Icon and Label directly inside wedge with Bouncy Scale
+            // D. Icon and Label directly inside wedge
             VStack(spacing: 3) {
                 Image(systemName: item.icon)
-                    .font(.system(size: isSelected ? 23 : 18, weight: isSelected ? .bold : .semibold))
+                    .font(.system(size: isSelected ? 21 : 18, weight: isSelected ? .bold : .semibold))
                     .foregroundColor(
                         isSelected
                             ? (isDark ? .white : item.swiftUIColor)
                             : (isDark ? item.swiftUIColor.opacity(0.95) : item.swiftUIColor)
                     )
                     .shadow(
-                        color: isSelected ? item.swiftUIColor.opacity(0.9) : Color.clear,
-                        radius: 8
+                        color: isSelected ? item.swiftUIColor.opacity(0.8) : Color.clear,
+                        radius: 6
                     )
 
                 Text(item.title)
@@ -180,16 +186,15 @@ public struct RadialMenuView: View {
                     .lineLimit(1)
             }
             .position(x: posX, y: posY)
-            .scaleEffect(isSelected ? 1.24 : 1.0)
+            .scaleEffect(isSelected ? 1.15 : 1.0)
         }
-        // Native drop shadow follows the actual wedge shape
+        .offset(x: offsetX, y: offsetY)
         .shadow(
-            color: Color.black.opacity(isSelected ? (isDark ? 0.45 : 0.25) : (isDark ? 0.22 : 0.1)),
-            radius: isSelected ? 18 : 6,
+            color: Color.black.opacity(isSelected ? (isDark ? 0.4 : 0.22) : (isDark ? 0.18 : 0.08)),
+            radius: isSelected ? 12 : 4,
             x: 0,
-            y: isSelected ? 8 : 2
+            y: isSelected ? 4 : 2
         )
-        .scaleEffect(isSelected ? 1.06 : 1.0, anchor: .center)
         .zIndex(isSelected ? 20 : 1)
     }
 
@@ -291,7 +296,7 @@ public struct RadialMenuView: View {
         }
 
         // Outside outer ring limit: no selection
-        if distance > CGFloat(appearance.radius + 40) {
+        if distance > CGFloat(appearance.radius + 35) {
             if hoveredIndex != nil {
                 hoveredIndex = nil
             }
