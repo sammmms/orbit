@@ -8,6 +8,9 @@ public final class AppDelegate: NSObject, NSApplicationDelegate {
         // Ensure configuration is loaded or created
         _ = ConfigManager.shared
 
+        // Start tracking clipboard history in background
+        ClipboardHistoryManager.shared.startPolling()
+
         // Initialize Menu Bar item
         MenuBarController.shared.setup()
 

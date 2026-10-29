@@ -10,6 +10,7 @@ public enum RadialActionType: String, Codable, Sendable {
     case colorPicker
     case cleanPaste
     case lockScreen
+    case clipboardHistory
 }
 
 public struct RadialItem: Identifiable, Codable, Sendable {
@@ -121,17 +122,17 @@ public struct OrbitConfig: Codable, Sendable {
             icon: "terminal.fill",
             color: "green",
             action: .openApp,
-            payload: "Terminal",
-            subtitle: "Launch Shell"
+            payload: "Ghostty",
+            subtitle: "Launch Ghostty"
         ),
         RadialItem(
-            id: "code",
-            title: "VS Code",
-            icon: "chevron.left.forwardslash.chevron.right",
-            color: "blue",
-            action: .openApp,
-            payload: "Visual Studio Code",
-            subtitle: "Code Editor"
+            id: "clipboard",
+            title: "Clipboard",
+            icon: "list.clipboard.fill",
+            color: "purple",
+            action: .clipboardHistory,
+            payload: "",
+            subtitle: "Paste History"
         ),
         RadialItem(
             id: "browser",

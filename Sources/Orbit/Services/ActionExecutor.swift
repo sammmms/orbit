@@ -35,6 +35,9 @@ public final class ActionExecutor: Sendable {
 
         case .lockScreen:
             lockMacDisplay()
+
+        case .clipboardHistory:
+            showClipboardHistory()
         }
     }
 
@@ -151,23 +154,34 @@ public final class ActionExecutor: Sendable {
         }
     }
 
-    // MARK: - Media Play / Pause
+    // MARK: - Native macOS Media Key (NX_KEYTYPE_PLAY = 16)
     private func toggleMediaPlayback() {
-        let scriptSource = """
-        tell application "System Events"
-            set isSpotifyRunning to (exists (processes where name is "Spotify"))
-            set isMusicRunning to (exists (processes where name is "Music"))
-        end tell
-        if isSpotifyRunning then
-            tell application "Spotify" to playpause
-        else if isMusicRunning then
-            tell application "Music" to playpause
-        end if
-        """
-        if let appleScript = NSAppleScript(source: scriptSource) {
-            var errorInfo: NSDictionary?
-            appleScript.executeAndReturnError(&errorInfo)
+        // Simulates the physical hardware media Play/Pause key globally across macOS
+        func postMediaKey(down: Bool) {
+            let key: Int32 = 16 // NX_KEYTYPE_PLAY
+            let flags: NSEvent.ModifierFlags = down ? .init(rawValue: 0xa00) : .init(rawValue: 0xb00)
+            let data1 = Int((key << 16) | (down ? 0xa00 : 0xb00))
+            let ev = NSEvent.otherEvent(
+                with: .systemDefined,
+                location: .zero,
+                modifierFlags: flags,
+                timestamp: 0,
+                windowNumber: 0,
+                context: nil,
+                subtype: 8,
+                data1: data1,
+                data2: -1
+            )
+            ev?.cgEvent?.post(tap: .cghidEventTap)
         }
+        postMediaKey(down: true)
+        postMediaKey(down: false)
+        print("[Orbit] Posted native macOS Media Play/Pause key.")
+    }
+
+    // MARK: - Clipboard History
+    private func showClipboardHistory() {
+        ClipboardPanelController.shared.show()
     }
 
     // MARK: - Native Color Sampler
