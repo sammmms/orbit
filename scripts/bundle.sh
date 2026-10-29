@@ -16,6 +16,14 @@ mkdir -p "$APP_BUNDLE/Contents/Resources"
 
 cp "$BUILD_DIR/Orbit" "$APP_BUNDLE/Contents/MacOS/Orbit"
 
+if [ ! -f "$DIR/Resources/AppIcon.icns" ]; then
+    echo "==> Generating AppIcon.icns..."
+    swift "$DIR/scripts/generate_icon.swift"
+    mkdir -p "$DIR/Resources"
+    cp "$DIR/AppIcon.icns" "$DIR/Resources/AppIcon.icns"
+fi
+cp "$DIR/Resources/AppIcon.icns" "$APP_BUNDLE/Contents/Resources/AppIcon.icns"
+
 cat << 'EOF' > "$APP_BUNDLE/Contents/Info.plist"
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
@@ -29,6 +37,10 @@ cat << 'EOF' > "$APP_BUNDLE/Contents/Info.plist"
     <string>Orbit</string>
     <key>CFBundleDisplayName</key>
     <string>Orbit</string>
+    <key>CFBundleIconFile</key>
+    <string>AppIcon</string>
+    <key>CFBundleIconName</key>
+    <string>AppIcon</string>
     <key>CFBundlePackageType</key>
     <string>APPL</string>
     <key>CFBundleShortVersionString</key>
