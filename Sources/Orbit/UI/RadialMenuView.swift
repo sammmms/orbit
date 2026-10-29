@@ -283,42 +283,45 @@ public struct RadialMenuView: View {
                     radius: 10
                 )
 
-            // Content inside Orb
+            // Content inside Orb (Strictly bounded so text CANNOT overflow the circle!)
             if let item = selectedItem {
                 VStack(spacing: 2) {
                     Image(systemName: item.icon)
-                        .font(.system(size: 16, weight: .bold))
+                        .font(.system(size: 15, weight: .bold))
                         .foregroundColor(item.swiftUIColor)
-                        .shadow(color: item.swiftUIColor.opacity(0.8), radius: 6)
+                        .shadow(color: item.swiftUIColor.opacity(0.8), radius: 5)
 
                     Text(item.title)
-                        .font(.system(size: 11, weight: .bold, design: .rounded))
+                        .font(.system(size: 10.5, weight: .bold, design: .rounded))
                         .foregroundColor(isDark ? .white : .black)
                         .lineLimit(1)
+                        .minimumScaleFactor(0.8)
 
                     if let subtitle = item.subtitle {
                         Text(subtitle)
                             .font(.system(size: 8, weight: .semibold))
                             .foregroundColor(isDark ? .white.opacity(0.7) : Color.black.opacity(0.6))
                             .lineLimit(1)
+                            .minimumScaleFactor(0.72)
                     }
                 }
+                .frame(maxWidth: (innerR * 2) - 22)
                 .transition(.scale(scale: 0.9).combined(with: .opacity))
             } else {
                 VStack(spacing: 3) {
                     Image(systemName: "circle.circle")
-                        .font(.system(size: 17, weight: .light))
+                        .font(.system(size: 16, weight: .light))
                         .foregroundColor(isDark ? .white.opacity(0.5) : Color.black.opacity(0.4))
 
                     Text("Orbit")
                         .font(.system(size: 10, weight: .bold, design: .rounded))
                         .foregroundColor(isDark ? .white.opacity(0.85) : Color.black.opacity(0.8))
                 }
+                .frame(maxWidth: (innerR * 2) - 22)
                 .transition(.opacity)
             }
         }
         .contentShape(Circle())
-        .scaleEffect(selectedItem != nil ? 1.05 : 1.0)
         .shadow(color: Color.black.opacity(isDark ? 0.35 : 0.15), radius: 10, x: 0, y: 4)
         .onTapGesture {
             onCancel()

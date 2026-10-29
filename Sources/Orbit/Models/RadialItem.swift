@@ -166,7 +166,7 @@ public struct OrbitConfig: Codable, Sendable {
             color: "orange",
             action: .ocr,
             payload: "",
-            subtitle: "Snip & Copy Text"
+            subtitle: "Copy Text"
         ),
         RadialItem(
             id: "media",
@@ -175,7 +175,7 @@ public struct OrbitConfig: Codable, Sendable {
             color: "pink",
             action: .mediaPlayPause,
             payload: "",
-            subtitle: "Music & Spotify"
+            subtitle: "Toggle Audio"
         ),
         RadialItem(
             id: "color",
@@ -184,7 +184,7 @@ public struct OrbitConfig: Codable, Sendable {
             color: "purple",
             action: .colorPicker,
             payload: "",
-            subtitle: "Pick Hex Color"
+            subtitle: "Pick Hex"
         ),
         RadialItem(
             id: "cleanpaste",
@@ -193,7 +193,7 @@ public struct OrbitConfig: Codable, Sendable {
             color: "yellow",
             action: .cleanPaste,
             payload: "",
-            subtitle: "Strip Formats"
+            subtitle: "Plain Text"
         ),
         RadialItem(
             id: "lock",
@@ -202,7 +202,7 @@ public struct OrbitConfig: Codable, Sendable {
             color: "red",
             action: .lockScreen,
             payload: "",
-            subtitle: "Put Screen to Sleep"
+            subtitle: "Sleep Mac"
         )
     ]
 }
