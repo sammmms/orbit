@@ -17,6 +17,9 @@ public final class AppDelegate: NSObject, NSApplicationDelegate {
         // Ensure configuration is loaded or created
         _ = ConfigManager.shared
 
+        // Start tracking active external application for bulletproof auto-paste
+        AppState.shared.start()
+
         // Start tracking clipboard history in background
         ClipboardHistoryManager.shared.startPolling()
 
