@@ -15,6 +15,7 @@ public final class RadialPanel: NSPanel {
         )
 
         self.level = .popUpMenu
+        self.isFloatingPanel = true
         self.isOpaque = false
         self.backgroundColor = .clear
         self.hasShadow = false

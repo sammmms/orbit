@@ -7,7 +7,7 @@ public final class RadialMenuController: ObservableObject {
 
     private var panel: RadialPanel?
     private var hostingView: NSHostingView<AnyView>?
-    private let windowSize: CGFloat = 340.0
+    private let windowSize: CGFloat = 360.0
     private var currentMenuView: RadialMenuView?
 
     @Published public private(set) var isOpen: Bool = false
@@ -97,6 +97,11 @@ public final class RadialMenuController: ObservableObject {
 
     public func handleModifierOrKeyRelease() {
         guard isOpen, isHoldMode else { return }
+        currentMenuView?.commitSelection()
+    }
+
+    public func commitSelection() {
+        guard isOpen else { return }
         currentMenuView?.commitSelection()
     }
 

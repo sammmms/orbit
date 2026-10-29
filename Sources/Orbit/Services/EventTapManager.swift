@@ -18,11 +18,16 @@ public final class EventTapManager: @unchecked Sendable {
     public func start() {
         guard eventTap == nil else { return }
 
-        // Mask for keys, modifiers, mouse moves, and mouse buttons
+        // Comprehensive event mask: keys, modifiers, mouse moves, and clicks
         let eventsOfInterest: CGEventMask =
             (1 << CGEventType.flagsChanged.rawValue) |
             (1 << CGEventType.keyDown.rawValue) |
             (1 << CGEventType.keyUp.rawValue) |
+            (1 << CGEventType.leftMouseDown.rawValue) |
+            (1 << CGEventType.leftMouseUp.rawValue) |
+            (1 << CGEventType.leftMouseDragged.rawValue) |
+            (1 << CGEventType.rightMouseDown.rawValue) |
+            (1 << CGEventType.rightMouseUp.rawValue) |
             (1 << CGEventType.otherMouseDown.rawValue) |
             (1 << CGEventType.otherMouseUp.rawValue) |
             (1 << CGEventType.otherMouseDragged.rawValue) |
@@ -80,16 +85,56 @@ public final class EventTapManager: @unchecked Sendable {
             let config = ConfigManager.shared.config
             let controller = RadialMenuController.shared
 
-            // 1. Mouse movement tracking while menu is open
+            // MARK: - A. When Radial Menu IS OPEN
+            // Intercept and absorb inputs so background apps never receive clicks or steal focus!
             if controller.isOpen {
-                if type == .mouseMoved || type == .otherMouseDragged {
+                // 1. Mouse movements & drags
+                if type == .mouseMoved || type == .leftMouseDragged || type == .otherMouseDragged {
                     let screenHeight = NSScreen.screens.first?.frame.height ?? 1080.0
                     let cocoaLocation = NSPoint(x: location.x, y: screenHeight - location.y)
                     controller.updateMousePosition(cocoaLocation)
+                    // In hold mode or open mode, track smoothly
+                }
+
+                // 2. Left Mouse Down: Update selection & CONSUME click so background window is not clicked!
+                if type == .leftMouseDown {
+                    let screenHeight = NSScreen.screens.first?.frame.height ?? 1080.0
+                    let cocoaLocation = NSPoint(x: location.x, y: screenHeight - location.y)
+                    controller.updateMousePosition(cocoaLocation)
+                    return true // Swallowed!
+                }
+
+                // 3. Left Mouse Up: Commit selected slice & CONSUME!
+                if type == .leftMouseUp {
+                    controller.commitSelection()
+                    return true // Swallowed!
+                }
+
+                // 4. Right Mouse Down: Dismiss menu & CONSUME!
+                if type == .rightMouseDown {
+                    controller.close()
+                    return true // Swallowed!
+                }
+
+                // 5. Escape or Space while open
+                if type == .keyDown {
+                    if keyCode == 53 { // Escape
+                        controller.close()
+                        return true
+                    }
+                    if keyCode == 49 { // Space
+                        // If Option+Space pressed again, close
+                        controller.close()
+                        return true
+                    }
+                    if keyCode == 36 { // Enter
+                        controller.commitSelection()
+                        return true
+                    }
                 }
             }
 
-            // 2. Middle Click (Button number 2 in CGEvent = Middle click / scroll wheel press)
+            // MARK: - B. Middle Click Trigger (Hold & Flick)
             if config.trigger.enableMiddleClick {
                 if buttonNumber == 2 { // Middle button
                     if type == .otherMouseDown {
@@ -104,10 +149,9 @@ public final class EventTapManager: @unchecked Sendable {
                 }
             }
 
-            // 3. Hotkey: Option + Space
+            // MARK: - C. Hotkey: Option + Space
             if type == .keyDown {
-                // Space key = 49
-                if keyCode == 49 {
+                if keyCode == 49 { // Space
                     let isOption = flags.contains(.maskAlternate)
                     let isCmd = flags.contains(.maskCommand)
                     let isCtrl = flags.contains(.maskControl)
@@ -117,11 +161,6 @@ public final class EventTapManager: @unchecked Sendable {
                         controller.toggle()
                         return true // Consume hotkey
                     }
-                } else if keyCode == 53 { // Escape key
-                    if controller.isOpen {
-                        controller.close()
-                        return true
-                    }
                 } else {
                     otherKeyPressedDuringHold = true
                     optionHoldTimer?.invalidate()
@@ -129,7 +168,7 @@ public final class EventTapManager: @unchecked Sendable {
                 }
             }
 
-            // 4. Modifier hold handling (Option hold)
+            // MARK: - D. Modifier Hold (Option Key)
             if type == .flagsChanged {
                 let optionPressed = flags.contains(.maskAlternate)
                 let holdSetting = config.trigger.holdModifier.lowercased()
