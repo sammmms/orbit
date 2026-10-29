@@ -66,6 +66,7 @@ public struct RadialItem: Identifiable, Codable, Sendable {
         case "color": return "Color"
         case "ocr": return "OCR"
         case "media": return "Media"
+        case "ai": return "AI"
         case "cleanpaste": return "Paste"
         case "lock": return "Lock"
         case "browser": return "Web"
@@ -187,13 +188,13 @@ public struct OrbitConfig: Codable, Sendable {
             subtitle: "Pick Hex"
         ),
         RadialItem(
-            id: "cleanpaste",
-            title: "Clean Paste",
-            icon: "doc.on.clipboard.fill",
-            color: "yellow",
-            action: .cleanPaste,
-            payload: "",
-            subtitle: "Plain Text"
+            id: "ai",
+            title: "Ask AI",
+            icon: "sparkles",
+            color: "indigo",
+            action: .openUrl,
+            payload: "https://chatgpt.com",
+            subtitle: "Chat & Search"
         ),
         RadialItem(
             id: "lock",

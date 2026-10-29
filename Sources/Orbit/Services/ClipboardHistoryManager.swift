@@ -81,7 +81,7 @@ public final class ClipboardHistoryManager: ObservableObject {
         saveToDisk()
     }
 
-    public func selectAndPaste(entry: ClipboardEntry) {
+    public func selectAndPaste(entry: ClipboardEntry, targetApp: NSRunningApplication? = nil) {
         let pasteboard = NSPasteboard.general
         pasteboard.clearContents()
         pasteboard.setString(entry.text, forType: .string)
@@ -96,8 +96,25 @@ public final class ClipboardHistoryManager: ObservableObject {
 
         NSSound(named: "Pop")?.play()
 
-        // Simulate Cmd+V into the target active application
-        DispatchQueue.global(qos: .userInitiated).asyncAfter(deadline: .now() + 0.12) {
+        // 1. Re-activate the target application so it regains window focus
+        if let app = targetApp {
+            app.activate()
+        }
+
+        // 2. Give macOS 150ms to complete focus switch, then simulate Cmd + V
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) {
+            // A. AppleScript paste (guaranteed to deliver to the frontmost active window)
+            let script = "tell application \"System Events\" to keystroke \"v\" using command down"
+            if let appleScript = NSAppleScript(source: script) {
+                var error: NSDictionary?
+                appleScript.executeAndReturnError(&error)
+                if error == nil {
+                    print("[Orbit Clipboard] Successfully pasted via AppleScript keystroke!")
+                    return
+                }
+            }
+
+            // B. Fallback: CGEvent keyboard simulation
             let src = CGEventSource(stateID: .combinedSessionState)
             let vKeyCode: CGKeyCode = 9 // 'v'
             if let keyDown = CGEvent(keyboardEventSource: src, virtualKey: vKeyCode, keyDown: true),

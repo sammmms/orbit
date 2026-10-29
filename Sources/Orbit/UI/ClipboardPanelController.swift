@@ -6,10 +6,14 @@ public final class ClipboardPanelController: ObservableObject {
     public static let shared = ClipboardPanelController()
 
     private var panel: NSPanel?
+    private var previousApp: NSRunningApplication?
 
     private init() {}
 
     public func show() {
+        // Capture currently frontmost app before opening clipboard window
+        self.previousApp = NSWorkspace.shared.frontmostApplication
+
         if panel == nil {
             let p = NSPanel(
                 contentRect: NSRect(x: 0, y: 0, width: 380, height: 400),
@@ -30,8 +34,9 @@ public final class ClipboardPanelController: ObservableObject {
 
         let contentView = ClipboardHistoryView(
             onSelect: { [weak self] entry in
-                self?.close()
-                ClipboardHistoryManager.shared.selectAndPaste(entry: entry)
+                let targetApp = self?.previousApp
+                self?.closeImmediately()
+                ClipboardHistoryManager.shared.selectAndPaste(entry: entry, targetApp: targetApp)
             },
             onClose: { [weak self] in
                 self?.close()
@@ -57,6 +62,12 @@ public final class ClipboardPanelController: ObservableObject {
         panel.makeKeyAndOrderFront(nil)
     }
 
+    public func closeImmediately() {
+        guard let panel = panel else { return }
+        panel.orderOut(nil)
+        panel.alphaValue = 1.0
+    }
+
     public func close() {
         guard let panel = panel else { return }
         NSAnimationContext.runAnimationGroup({ context in
@@ -65,6 +76,7 @@ public final class ClipboardPanelController: ObservableObject {
         }, completionHandler: { [weak panel] in
             DispatchQueue.main.async {
                 panel?.orderOut(nil)
+                panel?.alphaValue = 1.0
             }
         })
     }
