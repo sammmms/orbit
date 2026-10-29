@@ -1,27 +1,34 @@
-# 🪐 Orbit
-
 <p align="center">
-  <img src="assets/banner_refs/01_orbit_app_icon.png" width="128" alt="Orbit App Icon" />
-  <br />
-  <strong>Blazing-fast native radial menu & clipboard hub for macOS</strong>
-  <br />
-  <br />
-  <img src="assets/banner_refs/04_radial_menu_hover_clips.png" width="420" alt="Orbit Radial HUD" />
+  <img src="assets/banner.jpg" width="100%" alt="Orbit Showcase Banner" />
 </p>
 
-A lightweight, blazing-fast native radial menu (pie menu) and clipboard manager for macOS written in **Swift & SwiftUI**.
+<p align="center">
+  <a href="https://github.com/sammmms/orbit/stargazers"><img src="https://img.shields.io/github/stars/sammmms/orbit?color=yellow&style=flat-square" alt="Stars" /></a>
+  <img src="https://img.shields.io/badge/Platform-macOS%2014.0%2B-blue?style=flat-square&logo=apple" alt="macOS" />
+  <img src="https://img.shields.io/badge/Swift-6.0-F05138?style=flat-square&logo=swift&logoColor=white" alt="Swift 6.0" />
+  <img src="https://img.shields.io/badge/UI-SwiftUI%20%2B%20AppKit-6366F1?style=flat-square" alt="SwiftUI + AppKit" />
+  <img src="https://img.shields.io/badge/Architecture-Apple%20Silicon%20%7C%20ARM64-8B5CF6?style=flat-square" alt="Apple Silicon" />
+  <img src="https://img.shields.io/badge/License-MIT-green?style=flat-square" alt="License" />
+</p>
 
-Hold a hotkey or middle-click anywhere on macOS, and a frosted-glass radial wheel pops up directly under your cursor. Move your mouse towards any slice and release to launch apps, run custom terminal scripts, snip & OCR text from your screen, or control media with zero friction.
+---
 
-```
-       [ Terminal ]
-            ▲
- [ Lock ]   │   [ VS Code ]
-      ◀─────┼─────▶
- [ Notes ]  │   [ Browser ]
-            ▼
-      [ Screen OCR ]
-```
+# 🪐 Orbit
+
+> **Your Productivity, in Orbit.**
+> A blazing-fast native radial menu (pie menu) and glassmorphic clipboard manager for macOS written in **100% pure Swift & SwiftUI**.
+
+Hold a hotkey or middle-click anywhere on macOS, and a frosted-glass radial wheel pops up directly under your cursor. Flick your mouse towards any slice and release to launch apps, run terminal workflows, snip & OCR text from your screen, control media, or search & paste clipboard history with zero friction.
+
+---
+
+## 📸 Visual Showcase
+
+<p align="center">
+  <img src="assets/banner_refs/02_radial_menu_neutral.png" width="30%" alt="Radial Menu Neutral" />
+  <img src="assets/banner_refs/04_radial_menu_hover_clips.png" width="30%" alt="Radial Menu Hover" />
+  <img src="assets/banner_refs/07_clipboard_history_panel.png" width="28%" alt="Clipboard History Panel" />
+</p>
 
 ---
 
@@ -29,30 +36,32 @@ Hold a hotkey or middle-click anywhere on macOS, and a frosted-glass radial whee
 
 * **Fitts’s Law Speed:** Every option is equidistant from your mouse cursor. Selecting an item requires an angular flick rather than precision aiming, developing subconscious muscle memory over time.
 * **100% Native & Featherweight:** 
-  * Binary size: **~460 KB** (no Electron, no webview bloat).
+  * Binary size: **~480 KB** (no Electron, no webview, zero external dependencies).
   * Memory: **< 25 MB** RAM.
   * Launch latency: **< 5 ms**.
-* **Liquid Glass UI:** Built with SwiftUI's native `.ultraThinMaterial`, dynamic spring animations, and subtle haptic feedback.
+* **Liquid Glass UI:** Built with native macOS GPU-accelerated blur (`NSVisualEffectView`), multi-tier drop shadows, bouncy spring animations, and subtle haptic feedback.
 * **Supercharged Actions:**
-  * 💻 **App Launcher:** Instant access to your favorite terminals, editors, or browsers.
+  * 📋 **Glassmorphic Clipboard Hub:** Floating history panel with live fuzzy search, `1-9` quick keyboard shortcuts, and bulletproof native auto-paste engine (CoreGraphics event injection).
+  * 💻 **Instant App Launcher:** Fast-switch to your favorite terminals (Ghostty, Alacritty, iTerm), editors, or tools.
   * 📷 **Screen OCR:** Interactive screen selection -> native Apple Vision text recognition -> plain text copied to clipboard.
-  * 🎵 **Media Controller:** AppleScript-driven play/pause for Spotify and Apple Music.
+  * 🎵 **Media Controller:** Fast play/pause toggle for Spotify and Apple Music.
   * 🎨 **Native Color Sampler:** Screen eye-dropper that copies hex (`#RRGGBB`) directly to clipboard.
-  * 📋 **Clean Paste:** Strips formatting from clipboard and pastes cleanly.
-  * ⚡ **Shell Scripting:** Run any custom zsh command in background.
+  * 🔒 **Screen Lock:** Immediate sleep/lock display for privacy with a quick flick.
+  * ⚡ **Shell Scripting & URLs:** Run arbitrary background zsh commands or jump to web destinations.
 * **Fully Configurable via JSON:** Customize items, icons, colors, and radii in `~/.config/orbit/config.json`.
 
 ---
 
 ## 🚀 Triggers & Controls
 
-Orbit supports three intuitive trigger styles out of the box:
+Orbit supports multiple intuitive trigger styles out of the box:
 
 | Trigger | How it Works |
 |---|---|
-| **⌥ + Space** | Toggles the menu at cursor. Move to slice and click, or hit **Esc** to cancel. |
+| **⌥ Option + Space** | Global Carbon HotKey — bypasses terminal suppression. Pops up wheel at cursor. Move & click or hit **Esc** to dismiss. |
 | **Middle Click (Hold & Flick)** | Hold scroll wheel down anywhere -> flick cursor toward slice -> release to execute! |
 | **Option Hold** | Hold the `⌥ Option` key for >180ms -> wheel appears -> flick and release. |
+| **Numeric Shortcuts** | Inside Clipboard Panel, press `1` through `9` to instantly paste that snippet into the active app. |
 
 ---
 
@@ -64,24 +73,25 @@ Orbit supports three intuitive trigger styles out of the box:
 
 ### Quick Build & Run
 ```bash
-# Clone or navigate to the repo
-cd ~/Documents/GitHub/orbit
+# Clone the repository
+git clone https://github.com/sammmms/orbit.git
+cd orbit
 
-# Build and run directly in development
+# Build and run directly
 swift run
 
-# Or package into a standalone macOS .app bundle
+# Or package into a standalone signed macOS .app bundle
 ./scripts/bundle.sh run
 ```
 
-This creates `Orbit.app` right inside the repo. You can drag `Orbit.app` to `/Applications` or set it to run on login!
+This packages `Orbit.app` with an official high-resolution icon. You can drag `Orbit.app` to `/Applications` or add it to **System Settings > General > Login Items**!
 
 ---
 
 ## ⚙️ Configuration
 
 Orbit creates its configuration file automatically at:
-```
+```bash
 ~/.config/orbit/config.json
 ```
 You can also click the Orbit status icon in your **Menu Bar** and select **"Edit Configuration..."** to open it instantly.
@@ -89,112 +99,112 @@ You can also click the Orbit status icon in your **Menu Bar** and select **"Edit
 ### Sample Configuration
 ```json
 {
-  "appearance": {
-    "hapticsEnabled": true,
-    "innerRadius": 46,
-    "radius": 145,
-    "soundEnabled": true
+  "appearance" : {
+    "hapticsEnabled" : true,
+    "innerRadius" : 46,
+    "radius" : 145,
+    "soundEnabled" : true
   },
-  "trigger": {
-    "enableMiddleClick": true,
-    "holdDurationMs": 180,
-    "holdModifier": "Option",
-    "hotkey": "Option+Space"
-  },
-  "items": [
+  "items" : [
     {
-      "id": "terminal",
-      "title": "Terminal",
-      "icon": "terminal.fill",
-      "color": "green",
-      "action": "openApp",
-      "payload": "Terminal",
-      "subtitle": "Launch Shell"
+      "action" : "openApp",
+      "color" : "green",
+      "icon" : "terminal.fill",
+      "id" : "terminal",
+      "payload" : "Ghostty",
+      "subtitle" : "Launch Ghostty",
+      "title" : "Terminal"
     },
     {
-      "id": "code",
-      "title": "VS Code",
-      "icon": "chevron.left.forwardslash.chevron.right",
-      "color": "blue",
-      "action": "openApp",
-      "payload": "Visual Studio Code",
-      "subtitle": "Code Editor"
+      "action" : "clipboardHistory",
+      "color" : "purple",
+      "icon" : "list.clipboard.fill",
+      "id" : "clipboard",
+      "payload" : "",
+      "subtitle" : "Paste History",
+      "title" : "Clips"
     },
     {
-      "id": "browser",
-      "title": "Browser",
-      "icon": "safari.fill",
-      "color": "cyan",
-      "action": "openUrl",
-      "payload": "https://google.com",
-      "subtitle": "Open Web"
+      "action" : "openUrl",
+      "color" : "cyan",
+      "icon" : "safari.fill",
+      "id" : "browser",
+      "payload" : "https://google.com",
+      "subtitle" : "Open Web",
+      "title" : "Browser"
     },
     {
-      "id": "ocr",
-      "title": "Screen OCR",
-      "icon": "text.viewfinder",
-      "color": "orange",
-      "action": "ocr",
-      "payload": "",
-      "subtitle": "Snip & Copy Text"
+      "action" : "ocr",
+      "color" : "orange",
+      "icon" : "text.viewfinder",
+      "id" : "ocr",
+      "payload" : "",
+      "subtitle" : "Copy Text",
+      "title" : "Screen OCR"
     },
     {
-      "id": "media",
-      "title": "Play / Pause",
-      "icon": "playpause.fill",
-      "color": "pink",
-      "action": "mediaPlayPause",
-      "payload": "",
-      "subtitle": "Music & Spotify"
+      "action" : "mediaPlayPause",
+      "color" : "pink",
+      "icon" : "playpause.fill",
+      "id" : "media",
+      "payload" : "",
+      "subtitle" : "Toggle Audio",
+      "title" : "Play / Pause"
     },
     {
-      "id": "color",
-      "title": "Color Picker",
-      "icon": "eyedropper.halffull",
-      "color": "purple",
-      "action": "colorPicker",
-      "payload": "",
-      "subtitle": "Pick Hex Color"
+      "action" : "colorPicker",
+      "color" : "purple",
+      "icon" : "eyedropper.halffull",
+      "id" : "color",
+      "payload" : "",
+      "subtitle" : "Pick Hex",
+      "title" : "Color Picker"
     },
     {
-      "id": "cleanpaste",
-      "title": "Clean Paste",
-      "icon": "doc.on.clipboard.fill",
-      "color": "yellow",
-      "action": "cleanPaste",
-      "payload": "",
-      "subtitle": "Strip Formats"
+      "action" : "openUrl",
+      "color" : "indigo",
+      "icon" : "sparkles",
+      "id" : "ai",
+      "payload" : "https://chatgpt.com",
+      "subtitle" : "Chat & Search",
+      "title" : "Ask AI"
     },
     {
-      "id": "lock",
-      "title": "Lock Mac",
-      "icon": "lock.fill",
-      "color": "red",
-      "action": "lockScreen",
-      "payload": "",
-      "subtitle": "Put Screen to Sleep"
+      "action" : "lockScreen",
+      "color" : "red",
+      "icon" : "lock.fill",
+      "id" : "lock",
+      "payload" : "",
+      "subtitle" : "Sleep Mac",
+      "title" : "Lock Mac"
     }
-  ]
+  ],
+  "trigger" : {
+    "enableMiddleClick" : true,
+    "holdDurationMs" : 180,
+    "holdModifier" : "Option",
+    "hotkey" : "Option+Space"
+  }
 }
 ```
 
 ### Supported Actions:
+* `"clipboardHistory"`: Opens the modern floating Clipboard History HUD with live filtering and auto-paste.
 * `"openApp"`: Launches application by name or bundle id (`"payload": "Ghostty"` or `"Visual Studio Code"`).
 * `"openUrl"`: Opens web address in default browser (`"payload": "https://github.com"`).
 * `"runScript"`: Executes arbitrary shell commands via zsh (`"payload": "git status"` or custom bash alias).
 * `"ocr"`: Interactive screen snip with automatic optical character recognition to clipboard.
 * `"mediaPlayPause"`: Toggles play/pause for Spotify or Apple Music.
 * `"colorPicker"`: Native macOS pixel color sampler.
-* `"cleanPaste"`: Strips clipboard rich text and pastes plain string.
 * `"lockScreen"`: Puts Mac display to sleep immediately.
 
 ---
 
 ## 🔒 Permissions
 
-Because Orbit listens globally for mouse events and hotkeys:
+Because Orbit simulates paste keystrokes into active applications and handles global hotkeys:
 * macOS requires **Accessibility Permissions** (`System Settings > Privacy & Security > Accessibility`).
-* When launching Orbit for the first time, macOS will prompt you to toggle Orbit on in Accessibility.
+* Orbit prompts for trusted status on launch, and will automatically guide you if permissions are needed.
 
 ---
 
@@ -202,26 +212,38 @@ Because Orbit listens globally for mouse events and hotkeys:
 
 ```
 Orbit/
-├── Package.swift
+├── assets/
+│   ├── banner.jpg                     # Official 3:2 portfolio showcase banner
+│   └── banner_refs/                   # Retina transparent HUD assets & icon
 ├── scripts/
-│   └── bundle.sh              # Releases & signs Orbit.app
+│   ├── bundle.sh                      # Builds, signs, and packages Orbit.app
+│   ├── generate_icon.swift            # Generates master AppIcon.icns
+│   └── generate_banner_assets.swift   # Automated screenshot & HUD asset generator
 └── Sources/Orbit/
-    ├── main.swift             # App entry point
-    ├── AppDelegate.swift      # Background agent lifecycle
+    ├── main.swift                     # App entry point
+    ├── AppDelegate.swift              # Background agent lifecycle & notifications
     ├── Models/
-    │   └── RadialItem.swift   # Item and Config data structures
+    │   └── RadialItem.swift           # Codable configuration & state models
     ├── Services/
-    │   ├── ConfigManager.swift    # JSON persistence (~/.config/orbit/)
-    │   ├── ActionExecutor.swift   # OCR, App launch, scripts, AppleScript
-    │   └── EventTapManager.swift  # CGEventTap session listener
+    │   ├── ActionExecutor.swift       # OCR, App launch, scripts, and media toggle
+    │   ├── AppState.swift             # Tracks external active applications
+    │   ├── CarbonHotKeyManager.swift  # Global Option+Space hotkey registration
+    │   ├── ClipboardHistoryManager.swift # Clip polling, storage, & CoreGraphics auto-paste
+    │   ├── ConfigManager.swift        # JSON persistence (~/.config/orbit/)
+    │   └── EventTapManager.swift      # CGEventTap session listener (middle click & hold)
     └── UI/
+        ├── ClipboardHistoryView.swift # Glassmorphic SwiftUI clipboard panel
+        ├── ClipboardPanelController.swift # Floating borderless NSPanel manager
         ├── MenuBarController.swift    # NSStatusItem menu bar integration
-        ├── RadialPanel.swift          # Non-activating floating NSPanel
-        ├── RadialMenuView.swift       # SwiftUI interactive pie menu
-        └── RadialSliceShape.swift     # Annular sector trigonometry
+        ├── RadialMenuView.swift       # SwiftUI interactive pie menu & animations
+        ├── RadialMenuOverlayView.swift# Full-screen event-catching overlay
+        ├── RadialPanel.swift          # Non-activating floating HUD window
+        ├── RadialSliceShape.swift     # Annular sector trigonometry
+        └── VisualEffectBlur.swift     # GPU hardware Gaussian blur wrapper
 ```
 
 ---
 
 ## 📄 License
-MIT License. Created by Samuel.
+
+MIT License © 2026 Samuel (@sammmms).
