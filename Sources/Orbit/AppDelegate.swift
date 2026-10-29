@@ -2,6 +2,15 @@ import AppKit
 
 public final class AppDelegate: NSObject, NSApplicationDelegate {
     public func applicationDidFinishLaunching(_ notification: Notification) {
+        // Enforce single instance: terminate any other running Orbit instances
+        let myPID = ProcessInfo.processInfo.processIdentifier
+        let bundleID = Bundle.main.bundleIdentifier ?? "id.bizapps.orbit"
+        for app in NSRunningApplication.runningApplications(withBundleIdentifier: bundleID) {
+            if app.processIdentifier != myPID {
+                app.terminate()
+            }
+        }
+
         // Run as background menu bar app (no dock icon clutter)
         NSApp.setActivationPolicy(.accessory)
 

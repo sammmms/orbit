@@ -110,7 +110,8 @@ public struct RadialMenuView: View {
         let offsetY = dirY * popDistance
 
         // Centroid position for the icon and label
-        let midR = (innerR + outerR) / 2.0
+        // Positioned safely at 44% of distance between innerR and outerR (over 30pt margin from outer rim!)
+        let midR = innerR + (outerR - innerR) * 0.44
         let posX = center.x + dirX * midR
         let posY = center.y + dirY * midR
 
@@ -162,10 +163,10 @@ public struct RadialMenuView: View {
                     radius: isSelected ? 10 : 0
                 )
 
-            // D. Icon and Label directly inside wedge
-            VStack(spacing: 3) {
+            // D. Icon and Punchy Single-Word Label directly inside wedge (Safe from outer edge!)
+            VStack(spacing: 2) {
                 Image(systemName: item.icon)
-                    .font(.system(size: isSelected ? 21 : 18, weight: isSelected ? .bold : .semibold))
+                    .font(.system(size: isSelected ? 20 : 17, weight: isSelected ? .bold : .semibold))
                     .foregroundColor(
                         isSelected
                             ? (isDark ? .white : item.swiftUIColor)
@@ -176,8 +177,8 @@ public struct RadialMenuView: View {
                         radius: 6
                     )
 
-                Text(item.title)
-                    .font(.system(size: 10, weight: isSelected ? .bold : .medium, design: .rounded))
+                Text(item.shortTitle)
+                    .font(.system(size: 9.5, weight: isSelected ? .bold : .medium, design: .rounded))
                     .foregroundColor(
                         isSelected
                             ? (isDark ? .white : .black)
@@ -186,7 +187,7 @@ public struct RadialMenuView: View {
                     .lineLimit(1)
             }
             .position(x: posX, y: posY)
-            .scaleEffect(isSelected ? 1.15 : 1.0)
+            .scaleEffect(isSelected ? 1.12 : 1.0)
         }
         .offset(x: offsetX, y: offsetY)
         .shadow(

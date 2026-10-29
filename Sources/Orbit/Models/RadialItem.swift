@@ -60,6 +60,22 @@ public struct RadialItem: Identifiable, Codable, Sendable {
             return .accentColor
         }
     }
+
+    public var shortTitle: String {
+        switch id {
+        case "color": return "Color"
+        case "ocr": return "OCR"
+        case "media": return "Media"
+        case "cleanpaste": return "Paste"
+        case "lock": return "Lock"
+        case "browser": return "Web"
+        case "terminal": return "Terminal"
+        case "clipboard": return "Clips"
+        default:
+            let first = title.components(separatedBy: .whitespaces).first ?? title
+            return first.count > 8 ? String(first.prefix(7)) + "…" : first
+        }
+    }
 }
 
 public struct TriggerConfig: Codable, Sendable {
