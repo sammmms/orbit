@@ -2,8 +2,6 @@ import AppKit
 import SwiftUI
 
 public final class RadialPanel: NSPanel {
-    public var onMouseMove: ((CGPoint) -> Void)?
-    public var onMouseUp: (() -> Void)?
     public var onEscape: (() -> Void)?
 
     public init(contentRect: NSRect) {
@@ -20,35 +18,24 @@ public final class RadialPanel: NSPanel {
         self.backgroundColor = .clear
         self.hasShadow = false
         self.ignoresMouseEvents = false
-        self.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary]
+        self.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary, .ignoresCycle]
         self.isReleasedWhenClosed = false
         self.acceptsMouseMovedEvents = true
     }
 
     public override var canBecomeKey: Bool {
-        return false
+        return true
     }
 
     public override var canBecomeMain: Bool {
         return false
     }
 
-    public override func sendEvent(_ event: NSEvent) {
-        switch event.type {
-        case .mouseMoved:
-            let loc = event.locationInWindow
-            let converted = CGPoint(x: loc.x, y: frame.height - loc.y)
-            onMouseMove?(converted)
-        case .leftMouseUp, .otherMouseUp:
-            onMouseUp?()
-        case .keyDown:
-            if event.keyCode == 53 { // Esc key
-                onEscape?()
-                return
-            }
-        default:
-            break
+    public override func keyDown(with event: NSEvent) {
+        if event.keyCode == 53 { // Esc key
+            onEscape?()
+        } else {
+            super.keyDown(with: event)
         }
-        super.sendEvent(event)
     }
 }

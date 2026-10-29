@@ -34,32 +34,32 @@ public struct RadialMenuView: View {
 
     public var body: some View {
         ZStack {
-            // MARK: - 1. Native macOS Frosted Glass Backing
+            // MARK: - 1. Real macOS Frosted Glass Backing Disc
             let discDiameter = CGFloat(appearance.radius * 2 + 50)
 
             ZStack {
-                // Real system window blur behind window
+                // Live system blur behind window
                 VisualEffectBlur(material: .hudWindow, blendingMode: .behindWindow, state: .active)
                     .clipShape(Circle())
 
                 // Dark glass tint for contrast over light wallpapers
                 Circle()
-                    .fill(Color.black.opacity(0.22))
+                    .fill(Color.black.opacity(0.24))
 
                 // Subtle concentric orbit guide tracks
                 Circle()
-                    .stroke(Color.white.opacity(0.06), style: StrokeStyle(lineWidth: 1, dash: [4, 6]))
+                    .stroke(Color.white.opacity(0.08), style: StrokeStyle(lineWidth: 1, dash: [4, 6]))
                     .frame(width: (appearance.radius + appearance.innerRadius), height: (appearance.radius + appearance.innerRadius))
 
-                // Outer Glass Specular Bevel Border
+                // Outer Specular Bevel Border
                 Circle()
                     .strokeBorder(
                         LinearGradient(
                             colors: [
-                                Color.white.opacity(0.38),
+                                Color.white.opacity(0.42),
                                 Color.white.opacity(0.12),
                                 Color.white.opacity(0.04),
-                                Color.white.opacity(0.18)
+                                Color.white.opacity(0.22)
                             ],
                             startPoint: .topLeading,
                             endPoint: .bottomTrailing
@@ -69,8 +69,8 @@ public struct RadialMenuView: View {
             }
             .frame(width: discDiameter, height: discDiameter)
             // Multi-tier macOS shadows
-            .shadow(color: Color.black.opacity(0.45), radius: 36, x: 0, y: 18)
-            .shadow(color: Color.black.opacity(0.25), radius: 12, x: 0, y: 4)
+            .shadow(color: Color.black.opacity(0.5), radius: 36, x: 0, y: 18)
+            .shadow(color: Color.black.opacity(0.28), radius: 12, x: 0, y: 4)
 
             // MARK: - 2. Active Slice Glow Aura (Behind items)
             if let idx = hoveredIndex, items.indices.contains(idx) {
@@ -83,16 +83,15 @@ public struct RadialMenuView: View {
                 let glowX = center.x + CGFloat(cos(rad)) * midR
                 let glowY = center.y + CGFloat(sin(rad)) * midR
 
-                // Vibrant colorful backlight
                 Circle()
-                    .fill(item.swiftUIColor.opacity(0.45))
+                    .fill(item.swiftUIColor.opacity(0.5))
                     .frame(width: 90, height: 90)
-                    .blur(radius: 24)
+                    .blur(radius: 22)
                     .position(x: glowX, y: glowY)
                     .transition(.opacity)
             }
 
-            // MARK: - 3. Radial Slices & Pods
+            // MARK: - 3. Radial Slices & Action Pods
             ForEach(Array(items.enumerated()), id: \.element.id) { index, item in
                 sliceItemView(index: index, item: item)
             }
@@ -108,6 +107,26 @@ public struct RadialMenuView: View {
         .onAppear {
             isVisible = true
         }
+        // Continuous mouse hover tracking
+        .onContinuousHover { phase in
+            switch phase {
+            case .active(let location):
+                updateHover(at: location)
+            case .ended:
+                hoveredIndex = nil
+            }
+        }
+        // Click or Drag gesture to commit
+        .contentShape(Circle())
+        .gesture(
+            DragGesture(minimumDistance: 0)
+                .onChanged { value in
+                    updateHover(at: value.location)
+                }
+                .onEnded { value in
+                    commitSelection()
+                }
+        )
     }
 
     // MARK: - Slice & Pod View
@@ -142,7 +161,7 @@ public struct RadialMenuView: View {
                 .fill(
                     RadialGradient(
                         colors: [
-                            item.swiftUIColor.opacity(0.32),
+                            item.swiftUIColor.opacity(0.35),
                             item.swiftUIColor.opacity(0.12),
                             Color.clear
                         ],
@@ -160,7 +179,7 @@ public struct RadialMenuView: View {
                         outerRadius: outerR + 10
                     )
                     .fill(item.swiftUIColor)
-                    .shadow(color: item.swiftUIColor.opacity(0.8), radius: 6)
+                    .shadow(color: item.swiftUIColor.opacity(0.85), radius: 6)
                 )
                 .transition(.opacity)
             }
@@ -289,6 +308,10 @@ public struct RadialMenuView: View {
                 }
                 .transition(.opacity)
             }
+        }
+        .contentShape(Circle())
+        .onTapGesture {
+            onCancel()
         }
     }
 

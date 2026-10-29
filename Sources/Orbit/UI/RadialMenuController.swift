@@ -7,8 +7,6 @@ public final class RadialMenuController: ObservableObject {
 
     private var panel: RadialPanel?
     private var hostingView: NSHostingView<AnyView>?
-    private let windowSize: CGFloat = 360.0
-    private var currentMenuView: RadialMenuView?
 
     @Published public private(set) var isOpen: Bool = false
     public var isHoldMode: Bool = false
@@ -18,37 +16,11 @@ public final class RadialMenuController: ObservableObject {
     }
 
     private func setupPanel() {
-        let rect = NSRect(x: 0, y: 0, width: windowSize, height: windowSize)
-        let panel = RadialPanel(contentRect: rect)
+        // Initial dummy rect; updated dynamically to fill active screen on open
+        let initialRect = NSRect(x: 0, y: 0, width: 800, height: 600)
+        let panel = RadialPanel(contentRect: initialRect)
 
-        let menuView = RadialMenuView(
-            configManager: ConfigManager.shared,
-            onSelect: { [weak self] item in
-                self?.executeAndClose(item: item)
-            },
-            onCancel: { [weak self] in
-                self?.close()
-            }
-        )
-        self.currentMenuView = menuView
-
-        let anyView = AnyView(menuView)
-        let hosting = NSHostingView(rootView: anyView)
-        hosting.frame = NSRect(x: 0, y: 0, width: windowSize, height: windowSize)
-
-        panel.contentView = hosting
         self.panel = panel
-        self.hostingView = hosting
-
-        panel.onMouseMove = { [weak self] point in
-            self?.currentMenuView?.updateHover(at: point)
-        }
-
-        panel.onMouseUp = { [weak self] in
-            if self?.isHoldMode == true {
-                self?.currentMenuView?.commitSelection()
-            }
-        }
 
         panel.onEscape = { [weak self] in
             self?.close()
@@ -68,13 +40,37 @@ public final class RadialMenuController: ObservableObject {
         self.isHoldMode = holdMode
 
         let mouseLoc = NSEvent.mouseLocation
-        let origin = NSPoint(
-            x: mouseLoc.x - (windowSize / 2.0),
-            y: mouseLoc.y - (windowSize / 2.0)
+        let targetScreen = NSScreen.screens.first(where: { NSPointInRect(mouseLoc, $0.frame) })
+            ?? NSScreen.main
+            ?? NSScreen.screens.first!
+
+        let screenFrame = targetScreen.frame
+
+        // Calculate cursor position in local SwiftUI screen coordinates (top-left origin)
+        let localX = mouseLoc.x - screenFrame.origin.x
+        let localY = screenFrame.height - (mouseLoc.y - screenFrame.origin.y)
+        let cursorPoint = CGPoint(x: localX, y: localY)
+
+        // Construct the overlay view
+        let overlayView = RadialMenuOverlayView(
+            configManager: ConfigManager.shared,
+            menuPosition: cursorPoint,
+            onSelect: { [weak self] item in
+                self?.executeAndClose(item: item)
+            },
+            onCancel: { [weak self] in
+                self?.close()
+            }
         )
 
-        panel.setFrameOrigin(origin)
-        panel.orderFrontRegardless()
+        let hosting = NSHostingView(rootView: AnyView(overlayView))
+        hosting.frame = NSRect(origin: .zero, size: screenFrame.size)
+        panel.contentView = hosting
+        self.hostingView = hosting
+
+        panel.setFrame(screenFrame, display: true)
+        panel.alphaValue = 1.0
+        panel.makeKeyAndOrderFront(nil)
         self.isOpen = true
     }
 
@@ -84,7 +80,7 @@ public final class RadialMenuController: ObservableObject {
         self.isHoldMode = false
 
         NSAnimationContext.runAnimationGroup({ context in
-            context.duration = 0.12
+            context.duration = 0.1
             panel.animator().alphaValue = 0.0
         }, completionHandler: { [weak panel] in
             DispatchQueue.main.async {
@@ -97,26 +93,12 @@ public final class RadialMenuController: ObservableObject {
 
     public func handleModifierOrKeyRelease() {
         guard isOpen, isHoldMode else { return }
-        currentMenuView?.commitSelection()
-    }
-
-    public func commitSelection() {
-        guard isOpen else { return }
-        currentMenuView?.commitSelection()
-    }
-
-    public func updateMousePosition(_ screenPoint: NSPoint) {
-        guard isOpen, let panel = panel else { return }
-        let windowOrigin = panel.frame.origin
-        let localX = screenPoint.x - windowOrigin.x
-        let localY = screenPoint.y - windowOrigin.y
-        let swiftUIPoint = CGPoint(x: localX, y: windowSize - localY)
-        currentMenuView?.updateHover(at: swiftUIPoint)
+        // For hold mode, release can commit or close
+        close()
     }
 
     private func executeAndClose(item: RadialItem) {
         close()
-        // Execute on next runloop tick to let UI close cleanly
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) {
             ActionExecutor.shared.execute(item: item)
         }

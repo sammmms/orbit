@@ -11,13 +11,18 @@ public final class AppDelegate: NSObject, NSApplicationDelegate {
         // Initialize Menu Bar item
         MenuBarController.shared.setup()
 
-        // Start listening to global event tap
+        // Register Global Carbon HotKey (Option + Space)
+        // This fires at the WindowServer level, bypassing any terminal / tmux / secure input suppression!
+        CarbonHotKeyManager.shared.register()
+
+        // Start listening to global event tap (for middle mouse & option hold)
         EventTapManager.shared.start()
 
         print("[Orbit] Running! Press ⌥ + Space, hold Option, or click Middle Mouse Button to trigger.")
     }
 
     public func applicationWillTerminate(_ notification: Notification) {
+        CarbonHotKeyManager.shared.unregister()
         EventTapManager.shared.stop()
     }
 }
