@@ -34,69 +34,54 @@ public struct RadialMenuView: View {
 
     public var body: some View {
         ZStack {
-            // MARK: - 1. Real macOS Frosted Glass Backing Disc
-            let discDiameter = CGFloat(appearance.radius * 2 + 50)
+            // MARK: - 1. Authentic Translucent Glass Backing
+            let discDiameter = CGFloat(appearance.radius * 2 + 10)
 
             ZStack {
-                // Live system blur behind window
-                VisualEffectBlur(material: .hudWindow, blendingMode: .behindWindow, state: .active)
+                // Real system frosted blur (popover material for high clarity & transparency)
+                VisualEffectBlur(material: .popover, blendingMode: .behindWindow, state: .active)
                     .clipShape(Circle())
 
-                // Dark glass tint for contrast over light wallpapers
+                // Extremely subtle glass tint so content underneath remains clearly visible & frosted
                 Circle()
-                    .fill(Color.black.opacity(0.24))
+                    .fill(
+                        LinearGradient(
+                            colors: [
+                                Color.white.opacity(0.06),
+                                Color.white.opacity(0.01)
+                            ],
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        )
+                    )
 
-                // Subtle concentric orbit guide tracks
-                Circle()
-                    .stroke(Color.white.opacity(0.08), style: StrokeStyle(lineWidth: 1, dash: [4, 6]))
-                    .frame(width: (appearance.radius + appearance.innerRadius), height: (appearance.radius + appearance.innerRadius))
-
-                // Outer Specular Bevel Border
+                // Outer Glass Specular Rim
                 Circle()
                     .strokeBorder(
                         LinearGradient(
                             colors: [
-                                Color.white.opacity(0.42),
+                                Color.white.opacity(0.35),
                                 Color.white.opacity(0.12),
-                                Color.white.opacity(0.04),
-                                Color.white.opacity(0.22)
+                                Color.white.opacity(0.05),
+                                Color.white.opacity(0.2)
                             ],
                             startPoint: .topLeading,
                             endPoint: .bottomTrailing
                         ),
-                        lineWidth: 1.5
+                        lineWidth: 1.2
                     )
             }
             .frame(width: discDiameter, height: discDiameter)
-            // Multi-tier macOS shadows
-            .shadow(color: Color.black.opacity(0.5), radius: 36, x: 0, y: 18)
-            .shadow(color: Color.black.opacity(0.28), radius: 12, x: 0, y: 4)
+            // Soft native macOS drop shadow
+            .shadow(color: Color.black.opacity(0.35), radius: 28, x: 0, y: 14)
+            .shadow(color: Color.black.opacity(0.18), radius: 8, x: 0, y: 3)
 
-            // MARK: - 2. Active Slice Glow Aura (Behind items)
-            if let idx = hoveredIndex, items.indices.contains(idx) {
-                let item = items[idx]
-                let count = max(items.count, 1)
-                let step = 360.0 / Double(count)
-                let midAngleDeg = -90.0 + (Double(idx) * step)
-                let rad = midAngleDeg * .pi / 180.0
-                let midR = (CGFloat(appearance.innerRadius) + CGFloat(appearance.radius)) / 2.0
-                let glowX = center.x + CGFloat(cos(rad)) * midR
-                let glowY = center.y + CGFloat(sin(rad)) * midR
-
-                Circle()
-                    .fill(item.swiftUIColor.opacity(0.5))
-                    .frame(width: 90, height: 90)
-                    .blur(radius: 22)
-                    .position(x: glowX, y: glowY)
-                    .transition(.opacity)
-            }
-
-            // MARK: - 3. Radial Slices & Action Pods
+            // MARK: - 2. Triangular Slices with Sector Outlines
             ForEach(Array(items.enumerated()), id: \.element.id) { index, item in
-                sliceItemView(index: index, item: item)
+                sliceWedgeView(index: index, item: item)
             }
 
-            // MARK: - 4. Center Glass Orb Hub
+            // MARK: - 3. Center Glass Hub (Orb)
             centerHubView
         }
         .frame(width: size, height: size)
@@ -116,7 +101,7 @@ public struct RadialMenuView: View {
                 hoveredIndex = nil
             }
         }
-        // Click or Drag gesture to commit
+        // Click to commit
         .contentShape(Circle())
         .gesture(
             DragGesture(minimumDistance: 0)
@@ -129,65 +114,72 @@ public struct RadialMenuView: View {
         )
     }
 
-    // MARK: - Slice & Pod View
+    // MARK: - Triangular / Annular Wedge Slice View
     @ViewBuilder
-    private func sliceItemView(index: Int, item: RadialItem) -> some View {
+    private func sliceWedgeView(index: Int, item: RadialItem) -> some View {
         let isSelected = hoveredIndex == index
         let count = max(items.count, 1)
         let step = 360.0 / Double(count)
         let midAngleDeg = -90.0 + (Double(index) * step)
-        let gapDeg = 3.0
+        let gapDeg = 2.5
         let startAngleDeg = midAngleDeg - (step / 2.0) + (gapDeg / 2.0)
         let endAngleDeg = midAngleDeg + (step / 2.0) - (gapDeg / 2.0)
 
         let innerR = CGFloat(appearance.innerRadius)
-        let outerR = CGFloat(appearance.radius)
+        let outerR = isSelected ? CGFloat(appearance.radius + 5) : CGFloat(appearance.radius)
 
-        // Center point for the action pod
+        // Centroid position for the icon and label
         let rad = midAngleDeg * .pi / 180.0
-        let midR = (innerR + outerR) / 2.0
-        let podX = center.x + CGFloat(cos(rad)) * midR
-        let podY = center.y + CGFloat(sin(rad)) * midR
+        let midR = (innerR + CGFloat(appearance.radius)) / 2.0 + (isSelected ? 3 : 0)
+        let posX = center.x + CGFloat(cos(rad)) * midR
+        let posY = center.y + CGFloat(sin(rad)) * midR
 
         ZStack {
-            // Subtle sector wedge indicator when selected
-            if isSelected {
+            // Triangular / Annular Sector Shape
+            AnnularSector(
+                startAngle: Angle(degrees: startAngleDeg),
+                endAngle: Angle(degrees: endAngleDeg),
+                innerRadius: innerR + 1,
+                outerRadius: outerR
+            )
+            .fill(
+                isSelected
+                    ? AnyShapeStyle(
+                        LinearGradient(
+                            colors: [
+                                item.swiftUIColor.opacity(0.38),
+                                item.swiftUIColor.opacity(0.14)
+                            ],
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        )
+                    )
+                    : AnyShapeStyle(Color.white.opacity(0.03))
+            )
+            // Triangular Outline on each selection
+            .overlay(
                 AnnularSector(
                     startAngle: Angle(degrees: startAngleDeg),
                     endAngle: Angle(degrees: endAngleDeg),
-                    innerRadius: innerR + 2,
-                    outerRadius: outerR + 10
+                    innerRadius: innerR + 1,
+                    outerRadius: outerR
                 )
-                .fill(
-                    RadialGradient(
-                        colors: [
-                            item.swiftUIColor.opacity(0.35),
-                            item.swiftUIColor.opacity(0.12),
-                            Color.clear
-                        ],
-                        center: .center,
-                        startRadius: innerR,
-                        endRadius: outerR + 15
-                    )
+                .stroke(
+                    isSelected
+                        ? item.swiftUIColor.opacity(0.95)
+                        : Color.white.opacity(0.12),
+                    lineWidth: isSelected ? 2.0 : 1.0
                 )
-                .overlay(
-                    // Outer neon rim indicator
-                    AnnularSector(
-                        startAngle: Angle(degrees: startAngleDeg + 1),
-                        endAngle: Angle(degrees: endAngleDeg - 1),
-                        innerRadius: outerR + 7,
-                        outerRadius: outerR + 10
-                    )
-                    .fill(item.swiftUIColor)
-                    .shadow(color: item.swiftUIColor.opacity(0.85), radius: 6)
+                .shadow(
+                    color: isSelected ? item.swiftUIColor.opacity(0.7) : Color.clear,
+                    radius: isSelected ? 8 : 0
                 )
-                .transition(.opacity)
-            }
+            )
 
-            // Floating Glass Capsule Pod
+            // Icon and Label cleanly inside wedge (NO rounded rectangles / squares!)
             VStack(spacing: 3) {
                 Image(systemName: item.icon)
-                    .font(.system(size: isSelected ? 21 : 17, weight: isSelected ? .bold : .semibold))
+                    .font(.system(size: isSelected ? 22 : 18, weight: isSelected ? .bold : .semibold))
                     .foregroundColor(isSelected ? .white : item.swiftUIColor.opacity(0.95))
                     .shadow(color: isSelected ? item.swiftUIColor.opacity(0.9) : Color.clear, radius: 8)
 
@@ -196,52 +188,12 @@ public struct RadialMenuView: View {
                     .foregroundColor(isSelected ? .white : .white.opacity(0.85))
                     .lineLimit(1)
             }
-            .padding(.horizontal, 10)
-            .padding(.vertical, 7)
-            .background(
-                ZStack {
-                    if isSelected {
-                        // Glowing selected capsule
-                        RoundedRectangle(cornerRadius: 14, style: .continuous)
-                            .fill(
-                                LinearGradient(
-                                    colors: [
-                                        item.swiftUIColor.opacity(0.65),
-                                        item.swiftUIColor.opacity(0.35)
-                                    ],
-                                    startPoint: .topLeading,
-                                    endPoint: .bottomTrailing
-                                )
-                            )
-                        RoundedRectangle(cornerRadius: 14, style: .continuous)
-                            .strokeBorder(
-                                LinearGradient(
-                                    colors: [.white.opacity(0.85), item.swiftUIColor.opacity(0.8)],
-                                    startPoint: .top,
-                                    endPoint: .bottom
-                                ),
-                                lineWidth: 1.2
-                            )
-                    } else {
-                        // Inactive glass pill
-                        RoundedRectangle(cornerRadius: 14, style: .continuous)
-                            .fill(Color.white.opacity(0.06))
-                        RoundedRectangle(cornerRadius: 14, style: .continuous)
-                            .strokeBorder(Color.white.opacity(0.12), lineWidth: 0.8)
-                    }
-                }
-            )
-            .position(x: podX, y: podY)
-            .scaleEffect(isSelected ? 1.16 : 1.0)
-            .shadow(
-                color: isSelected ? item.swiftUIColor.opacity(0.5) : Color.black.opacity(0.2),
-                radius: isSelected ? 12 : 4,
-                y: isSelected ? 4 : 2
-            )
+            .position(x: posX, y: posY)
+            .scaleEffect(isSelected ? 1.12 : 1.0)
         }
     }
 
-    // MARK: - Center Hub View (Orb)
+    // MARK: - Center Glass Hub View
     private var centerHubView: some View {
         let innerR = CGFloat(appearance.innerRadius)
         let selectedItem = hoveredIndex.flatMap { items.indices.contains($0) ? items[$0] : nil }
@@ -253,7 +205,7 @@ public struct RadialMenuView: View {
                 .frame(width: innerR * 2, height: innerR * 2)
 
             Circle()
-                .fill(Color.black.opacity(0.25))
+                .fill(Color.white.opacity(0.04))
                 .frame(width: innerR * 2, height: innerR * 2)
 
             // Center Specular Bevel Border
@@ -261,8 +213,8 @@ public struct RadialMenuView: View {
                 .strokeBorder(
                     LinearGradient(
                         colors: [
-                            selectedItem != nil ? selectedItem!.swiftUIColor.opacity(0.9) : Color.white.opacity(0.45),
-                            selectedItem != nil ? selectedItem!.swiftUIColor.opacity(0.3) : Color.white.opacity(0.12)
+                            selectedItem != nil ? selectedItem!.swiftUIColor.opacity(0.95) : Color.white.opacity(0.4),
+                            selectedItem != nil ? selectedItem!.swiftUIColor.opacity(0.35) : Color.white.opacity(0.12)
                         ],
                         startPoint: .topLeading,
                         endPoint: .bottomTrailing
@@ -272,14 +224,14 @@ public struct RadialMenuView: View {
                 .frame(width: innerR * 2, height: innerR * 2)
                 .shadow(
                     color: selectedItem?.swiftUIColor.opacity(0.5) ?? Color.clear,
-                    radius: 12
+                    radius: 10
                 )
 
             // Content inside Orb
             if let item = selectedItem {
                 VStack(spacing: 2) {
                     Image(systemName: item.icon)
-                        .font(.system(size: 17, weight: .bold))
+                        .font(.system(size: 16, weight: .bold))
                         .foregroundColor(item.swiftUIColor)
                         .shadow(color: item.swiftUIColor.opacity(0.7), radius: 6)
 
@@ -299,7 +251,7 @@ public struct RadialMenuView: View {
             } else {
                 VStack(spacing: 3) {
                     Image(systemName: "circle.circle")
-                        .font(.system(size: 18, weight: .light))
+                        .font(.system(size: 17, weight: .light))
                         .foregroundColor(.white.opacity(0.45))
 
                     Text("Orbit")
@@ -331,7 +283,7 @@ public struct RadialMenuView: View {
         }
 
         // Outside outer ring limit: no selection
-        if distance > CGFloat(appearance.radius + 45) {
+        if distance > CGFloat(appearance.radius + 35) {
             if hoveredIndex != nil {
                 hoveredIndex = nil
             }
