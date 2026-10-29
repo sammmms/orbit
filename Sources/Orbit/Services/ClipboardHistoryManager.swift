@@ -103,41 +103,43 @@ public final class ClipboardHistoryManager: ObservableObject {
 
         NSSound(named: "Pop")?.play()
 
-        // 1. Re-activate the target application so it regains window focus
-        if let app = appToPaste {
-            print("[Orbit Clipboard] Activating target application: \(app.localizedName ?? "") (\(app.bundleIdentifier ?? ""))")
-            app.activate(options: [.activateAllWindows])
-            if let bundleID = app.bundleIdentifier {
-                let script = "tell application id \"\(bundleID)\" to activate"
-                NSAppleScript(source: script)?.executeAndReturnError(nil)
-            }
-        }
+        // 1. Hide Orbit panel immediately
+        ClipboardPanelController.shared.closeImmediately()
 
-        // 2. Poll until target application is frontmost, then simulate clean Cmd+V sequence
-        func performPaste(attemptsLeft: Int) {
-            let frontmost = NSWorkspace.shared.frontmostApplication
-            let isTargetFrontmost = appToPaste == nil || frontmost?.bundleIdentifier == appToPaste?.bundleIdentifier
+        // 2. Activate target app and paste via AppleScript & Hardware event
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) {
+            if let app = appToPaste, let bundleID = app.bundleIdentifier, bundleID != myBundleID {
+                print("[Orbit Clipboard] Activating target: \(app.localizedName ?? "") (\(bundleID))")
+                app.activate(options: [.activateAllWindows])
 
-            if isTargetFrontmost || attemptsLeft <= 0 {
-                print("[Orbit Clipboard] Target app is frontmost (\(frontmost?.localizedName ?? "")). Settle & posting Cmd+V...")
-                // Settle delay: give frontmost app's window/caret 60ms to accept key input
-                DispatchQueue.main.asyncAfter(deadline: .now() + 0.06) {
-                    self.postCleanCmdV()
+                let script = """
+                tell application id "\(bundleID)" to activate
+                delay 0.08
+                tell application "System Events" to keystroke "v" using command down
+                """
+                var err: NSDictionary?
+                let res = NSAppleScript(source: script)?.executeAndReturnError(&err)
+                print("[Orbit Clipboard] AppleScript res: \(res != nil), err: \(err?.description ?? "none")")
+
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.10) {
+                    self.postHardwareCmdV()
                 }
             } else {
-                DispatchQueue.main.asyncAfter(deadline: .now() + 0.03) {
-                    performPaste(attemptsLeft: attemptsLeft - 1)
+                print("[Orbit Clipboard] Fallback activation...")
+                appToPaste?.activate(options: [.activateAllWindows])
+                let script = """
+                delay 0.08
+                tell application "System Events" to keystroke "v" using command down
+                """
+                NSAppleScript(source: script)?.executeAndReturnError(nil)
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.10) {
+                    self.postHardwareCmdV()
                 }
             }
-        }
-
-        // Start checking after 50ms
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) {
-            performPaste(attemptsLeft: 12)
         }
     }
 
-    private func postCleanCmdV() {
+    private func postHardwareCmdV() {
         let source = CGEventSource(stateID: .combinedSessionState)
         let vKey: CGKeyCode = 9 // kVK_ANSI_V
 
@@ -150,9 +152,10 @@ public final class ClipboardHistoryManager: ObservableObject {
         keyUp.flags = .maskCommand
 
         keyDown.post(tap: .cghidEventTap)
-        usleep(25000) // 25ms key press duration
-        keyUp.post(tap: .cghidEventTap)
-        print("[Orbit Clipboard] Successfully posted Cmd+V via CGEvent tap")
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.02) {
+            keyUp.post(tap: .cghidEventTap)
+        }
+        print("[Orbit Clipboard] Posted hardware Cmd+V tap")
     }
 
     private func saveToDisk() {

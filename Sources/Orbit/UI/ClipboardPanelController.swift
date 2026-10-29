@@ -1,11 +1,48 @@
 import AppKit
 import SwiftUI
 
+public final class ClipboardPanel: NSPanel {
+    public var onEscape: (() -> Void)?
+
+    public init(contentRect: NSRect) {
+        super.init(
+            contentRect: contentRect,
+            styleMask: [.borderless, .nonactivatingPanel],
+            backing: .buffered,
+            defer: false
+        )
+        self.level = .popUpMenu
+        self.isFloatingPanel = true
+        self.isOpaque = false
+        self.backgroundColor = .clear
+        self.hasShadow = false
+        self.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary, .ignoresCycle]
+        self.isReleasedWhenClosed = false
+        self.acceptsMouseMovedEvents = true
+    }
+
+    public override var canBecomeKey: Bool {
+        return true
+    }
+
+    public override var canBecomeMain: Bool {
+        return false
+    }
+
+    public override func keyDown(with event: NSEvent) {
+        if event.keyCode == 53 { // Esc
+            onEscape?()
+        } else {
+            super.keyDown(with: event)
+        }
+    }
+}
+
 @MainActor
 public final class ClipboardPanelController: ObservableObject {
     public static let shared = ClipboardPanelController()
 
-    private var panel: NSPanel?
+    private var panel: ClipboardPanel?
     private var previousApp: NSRunningApplication?
 
     private init() {}
@@ -22,18 +59,10 @@ public final class ClipboardPanelController: ObservableObject {
         }
 
         if panel == nil {
-            let p = NSPanel(
-                contentRect: NSRect(x: 0, y: 0, width: 380, height: 400),
-                styleMask: [.borderless, .nonactivatingPanel],
-                backing: .buffered,
-                defer: false
-            )
-            p.level = .popUpMenu
-            p.isFloatingPanel = true
-            p.isOpaque = false
-            p.backgroundColor = .clear
-            p.hasShadow = false
-            p.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary]
+            let p = ClipboardPanel(contentRect: NSRect(x: 0, y: 0, width: 380, height: 400))
+            p.onEscape = { [weak self] in
+                self?.close()
+            }
             self.panel = p
         }
 
@@ -71,6 +100,7 @@ public final class ClipboardPanelController: ObservableObject {
         panel.setFrameOrigin(NSPoint(x: clampedX, y: clampedY))
         panel.alphaValue = 1.0
         panel.makeKeyAndOrderFront(nil)
+        NSApp.activate(ignoringOtherApps: false)
     }
 
     public func closeImmediately() {

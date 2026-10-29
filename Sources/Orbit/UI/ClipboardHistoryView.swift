@@ -7,6 +7,7 @@ public struct ClipboardHistoryView: View {
     public var onClose: () -> Void
 
     @State private var search: String = ""
+    @State private var hoveredIndex: Int? = nil
     @Environment(\.colorScheme) private var colorScheme
 
     private var isDark: Bool {
@@ -121,16 +122,17 @@ public struct ClipboardHistoryView: View {
 
     @ViewBuilder
     private func clipboardRow(index: Int, entry: ClipboardEntry) -> some View {
-        Button(action: {
+        let isHovered = (hoveredIndex == index)
+        let rowContent = Button(action: {
             onSelect(entry)
         }) {
             HStack(spacing: 8) {
                 if index < 9 {
                     Text("\(index + 1)")
                         .font(.system(size: 10, weight: .bold, design: .monospaced))
-                        .foregroundColor(.secondary)
+                        .foregroundColor(isHovered ? .white : .secondary)
                         .frame(width: 18, height: 18)
-                        .background(isDark ? Color.white.opacity(0.08) : Color.black.opacity(0.06))
+                        .background(isHovered ? Color.purple : (isDark ? Color.white.opacity(0.08) : Color.black.opacity(0.06)))
                         .cornerRadius(4)
                 } else {
                     Spacer().frame(width: 18)
@@ -138,21 +140,36 @@ public struct ClipboardHistoryView: View {
 
                 Text(entry.preview)
                     .font(.system(size: 11, design: .monospaced))
-                    .foregroundColor(isDark ? .white.opacity(0.9) : .primary)
+                    .foregroundColor(isDark ? .white.opacity(0.95) : .primary)
                     .lineLimit(2)
                     .multilineTextAlignment(.leading)
 
                 Spacer()
 
-                Image(systemName: "arrow.right.circle")
-                    .font(.system(size: 12))
-                    .foregroundColor(.secondary.opacity(0.6))
+                Image(systemName: "arrow.right.circle.fill")
+                    .font(.system(size: 13))
+                    .foregroundColor(isHovered ? .purple : .secondary.opacity(0.35))
             }
             .padding(.horizontal, 10)
-            .padding(.vertical, 7)
-            .background(Color.white.opacity(0.001))
+            .padding(.vertical, 8)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background(
+                isHovered
+                    ? (isDark ? Color.white.opacity(0.12) : Color.black.opacity(0.08))
+                    : Color.clear
+            )
             .cornerRadius(8)
+            .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
+        .onHover { h in
+            hoveredIndex = h ? index : (hoveredIndex == index ? nil : hoveredIndex)
+        }
+
+        if index < 9 {
+            rowContent.keyboardShortcut(KeyEquivalent(Character(UnicodeScalar(49 + index)!)), modifiers: [])
+        } else {
+            rowContent
+        }
     }
 }
