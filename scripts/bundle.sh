@@ -57,13 +57,15 @@ cat << 'EOF' > "$APP_BUNDLE/Contents/Info.plist"
     <true/>
     <key>NSAppleEventsUsageDescription</key>
     <string>Orbit uses automation to paste clipboard snippets into active apps.</string>
+    <key>NSScreenCaptureUsageDescription</key>
+    <string>Orbit uses screen capture to recognize text from your screen via OCR.</string>
 </dict>
 </plist>
 EOF
 
-# Ad-hoc code signing for local execution
-echo "==> Code-signing Orbit.app (ad-hoc)..."
-codesign --force --deep --sign - "$APP_BUNDLE"
+# Code signing with permanent designated requirement (preserves TCC permissions across builds)
+echo "==> Code-signing Orbit.app with stable designated requirement..."
+codesign --force --deep -s - -r='designated => identifier "id.bizapps.orbit"' "$APP_BUNDLE"
 
 echo "==> Successfully created $APP_BUNDLE!"
 

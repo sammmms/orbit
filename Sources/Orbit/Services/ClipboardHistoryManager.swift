@@ -55,6 +55,25 @@ public final class ClipboardHistoryManager: ObservableObject {
         }
     }
 
+    public func addEntry(text: String) {
+        let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return }
+
+        // Avoid adding duplicate of the top item
+        if let first = entries.first, first.text == trimmed {
+            return
+        }
+
+        let newEntry = ClipboardEntry(text: trimmed)
+        entries.insert(newEntry, at: 0)
+
+        if entries.count > maxEntries {
+            entries.removeLast(entries.count - maxEntries)
+        }
+
+        saveToDisk()
+    }
+
     private func checkForNewClipboardItem() {
         let pasteboard = NSPasteboard.general
         let currentChangeCount = pasteboard.changeCount

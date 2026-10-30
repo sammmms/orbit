@@ -11,6 +11,7 @@ public enum RadialActionType: String, Codable, Sendable {
     case cleanPaste
     case lockScreen
     case clipboardHistory
+    case finder
 }
 
 public struct RadialItem: Identifiable, Codable, Sendable {
@@ -63,6 +64,7 @@ public struct RadialItem: Identifiable, Codable, Sendable {
 
     public var shortTitle: String {
         switch id {
+        case "finder": return "Finder"
         case "color": return "Color"
         case "ocr": return "OCR"
         case "media": return "Media"
@@ -179,13 +181,13 @@ public struct OrbitConfig: Codable, Sendable {
             subtitle: "Toggle Audio"
         ),
         RadialItem(
-            id: "color",
-            title: "Color Picker",
-            icon: "eyedropper.halffull",
-            color: "purple",
-            action: .colorPicker,
-            payload: "",
-            subtitle: "Pick Hex"
+            id: "finder",
+            title: "Finder",
+            icon: "folder.fill",
+            color: "blue",
+            action: .openApp,
+            payload: "Finder",
+            subtitle: "Open Files"
         ),
         RadialItem(
             id: "ai",

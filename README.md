@@ -45,7 +45,7 @@ Hold a hotkey or middle-click anywhere on macOS, and a frosted-glass radial whee
   * 💻 **Instant App Launcher:** Fast-switch to your favorite terminals (Ghostty, Alacritty, iTerm), editors, or tools.
   * 📷 **Screen OCR:** Interactive screen selection -> native Apple Vision text recognition -> plain text copied to clipboard.
   * 🎵 **Media Controller:** Fast play/pause toggle for Spotify and Apple Music.
-  * 🎨 **Native Color Sampler:** Screen eye-dropper that copies hex (`#RRGGBB`) directly to clipboard.
+  * 📁 **Finder Quick Access:** Instantly pop open Finder at your home folder or custom directories.
   * 🔒 **Screen Lock:** Immediate sleep/lock display for privacy with a quick flick.
   * ⚡ **Shell Scripting & URLs:** Run arbitrary background zsh commands or jump to web destinations.
 * **Fully Configurable via JSON:** Customize items, icons, colors, and radii in `~/.config/orbit/config.json`.
@@ -152,13 +152,13 @@ You can also click the Orbit status icon in your **Menu Bar** and select **"Edit
       "title" : "Play / Pause"
     },
     {
-      "action" : "colorPicker",
-      "color" : "purple",
-      "icon" : "eyedropper.halffull",
-      "id" : "color",
-      "payload" : "",
-      "subtitle" : "Pick Hex",
-      "title" : "Color Picker"
+      "action" : "openApp",
+      "color" : "blue",
+      "icon" : "folder.fill",
+      "id" : "finder",
+      "payload" : "Finder",
+      "subtitle" : "Open Files",
+      "title" : "Finder"
     },
     {
       "action" : "openUrl",

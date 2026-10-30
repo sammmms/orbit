@@ -19,6 +19,10 @@ public final class AppDelegate: NSObject, NSApplicationDelegate {
         let trusted = AXIsProcessTrustedWithOptions(options)
         print("[Orbit] Accessibility permission trusted on launch: \(trusted)")
 
+        // Check Screen Capture permission status on launch
+        let screenCaptureTrusted = CGPreflightScreenCaptureAccess()
+        print("[Orbit] Screen Capture permission trusted on launch: \(screenCaptureTrusted)")
+
         // Ensure configuration is loaded or created
         _ = ConfigManager.shared
 
@@ -84,6 +88,23 @@ public final class AppDelegate: NSObject, NSApplicationDelegate {
         ) { _ in
             Task { @MainActor in
                 ClipboardPanelController.shared.close()
+            }
+        }
+        DistributedNotificationCenter.default().addObserver(
+            forName: NSNotification.Name("id.bizapps.orbit.triggerOCR"),
+            object: nil,
+            queue: .main
+        ) { _ in
+            Task { @MainActor in
+                ActionExecutor.shared.execute(item: RadialItem(
+                    id: "ocr",
+                    title: "Screen OCR",
+                    icon: "text.viewfinder",
+                    color: "orange",
+                    action: .ocr,
+                    payload: "",
+                    subtitle: "Copy Text"
+                ))
             }
         }
 

@@ -1,6 +1,7 @@
 import Foundation
 import AppKit
 import Vision
+import ImageIO
 
 @MainActor
 public final class ActionExecutor: Sendable {
@@ -38,11 +39,19 @@ public final class ActionExecutor: Sendable {
 
         case .clipboardHistory:
             showClipboardHistory()
+
+        case .finder:
+            openFinder(path: item.payload)
         }
     }
 
     // MARK: - App Launcher
     private func openApp(nameOrPath: String) {
+        if nameOrPath.lowercased() == "finder" {
+            openFinder()
+            return
+        }
+
         let ws = NSWorkspace.shared
 
         // 1. Direct path check
@@ -105,52 +114,77 @@ public final class ActionExecutor: Sendable {
 
     // MARK: - Screen Snip & OCR
     private func triggerScreenOCR() {
+        // Pre-check Screen Capture permission before launching screencapture
+        if !CGPreflightScreenCaptureAccess() {
+            print("[Orbit OCR] Screen Capture permission not trusted. Requesting access...")
+            CGRequestScreenCaptureAccess()
+            if let url = URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_ScreenCapture") {
+                NSWorkspace.shared.open(url)
+            }
+            return
+        }
+
         DispatchQueue.global(qos: .userInitiated).async {
-            // Run macOS interactive screencapture directly to clipboard
+            let tempDir = FileManager.default.temporaryDirectory
+            let tempUrl = tempDir.appendingPathComponent("orbit_ocr_\(UUID().uuidString).png")
+
+            // Run macOS interactive screencapture directly to temporary file
             let proc = Process()
             proc.executableURL = URL(fileURLWithPath: "/usr/sbin/screencapture")
-            proc.arguments = ["-i", "-c"] // interactive, copy to clipboard
+            proc.arguments = ["-i", "-x", tempUrl.path]
             try? proc.run()
             proc.waitUntilExit()
 
-            guard proc.terminationStatus == 0 else { return }
+            guard proc.terminationStatus == 0,
+                  FileManager.default.fileExists(atPath: tempUrl.path) else {
+                try? FileManager.default.removeItem(at: tempUrl)
+                return
+            }
 
-            // Read image from clipboard
-            DispatchQueue.main.async {
-                guard let image = NSPasteboard.general.readObjects(forClasses: [NSImage.self], options: nil)?.first as? NSImage,
-                      let tiffData = image.tiffRepresentation,
-                      let bitmap = NSBitmapImageRep(data: tiffData),
-                      let cgImage = bitmap.cgImage else {
+            defer {
+                try? FileManager.default.removeItem(at: tempUrl)
+            }
+
+            // Load captured image directly from disk
+            guard let imageSource = CGImageSourceCreateWithURL(tempUrl as CFURL, nil),
+                  let cgImage = CGImageSourceCreateImageAtIndex(imageSource, 0, nil) else {
+                print("[Orbit OCR] Could not decode captured image data.")
+                return
+            }
+
+            // Run Vision text recognition
+            let request = VNRecognizeTextRequest { (request, error) in
+                guard error == nil,
+                      let observations = request.results as? [VNRecognizedTextObservation] else {
                     return
                 }
 
-                // Run Vision text recognition
-                let request = VNRecognizeTextRequest { (request, error) in
-                    guard error == nil,
-                          let observations = request.results as? [VNRecognizedTextObservation] else {
-                        return
-                    }
+                let lines = observations.compactMap { $0.topCandidates(1).first?.string }
+                let extractedText = lines.joined(separator: "\n").trimmingCharacters(in: .whitespacesAndNewlines)
 
-                    let lines = observations.compactMap { $0.topCandidates(1).first?.string }
-                    let extractedText = lines.joined(separator: "\n").trimmingCharacters(in: .whitespacesAndNewlines)
-
-                    guard !extractedText.isEmpty else { return }
-
+                guard !extractedText.isEmpty else {
+                    print("[Orbit OCR] No text recognized in captured region.")
                     DispatchQueue.main.async {
-                        let pasteboard = NSPasteboard.general
-                        pasteboard.clearContents()
-                        pasteboard.setString(extractedText, forType: .string)
-                        NSSound(named: "Glass")?.play()
-                        print("[Orbit OCR] Extracted \(extractedText.count) characters to clipboard.")
+                        NSSound(named: "Basso")?.play()
                     }
+                    return
                 }
 
-                request.recognitionLevel = .accurate
-                request.usesLanguageCorrection = true
-
-                let handler = VNImageRequestHandler(cgImage: cgImage, options: [:])
-                try? handler.perform([request])
+                DispatchQueue.main.async {
+                    let pasteboard = NSPasteboard.general
+                    pasteboard.clearContents()
+                    pasteboard.setString(extractedText, forType: .string)
+                    ClipboardHistoryManager.shared.addEntry(text: extractedText)
+                    NSSound(named: "Glass")?.play()
+                    print("[Orbit OCR] Successfully extracted \(extractedText.count) characters to clipboard.")
+                }
             }
+
+            request.recognitionLevel = .accurate
+            request.usesLanguageCorrection = true
+
+            let handler = VNImageRequestHandler(cgImage: cgImage, options: [:])
+            try? handler.perform([request])
         }
     }
 
@@ -192,6 +226,22 @@ public final class ActionExecutor: Sendable {
     // MARK: - Clipboard History
     private func showClipboardHistory() {
         ClipboardPanelController.shared.show()
+    }
+
+    // MARK: - Finder
+    private func openFinder(path: String = "") {
+        DispatchQueue.main.async {
+            let ws = NSWorkspace.shared
+            let targetPath: String
+            if path.isEmpty || path.lowercased() == "finder" {
+                targetPath = FileManager.default.homeDirectoryForCurrentUser.path
+            } else {
+                targetPath = (path as NSString).expandingTildeInPath
+            }
+            let url = URL(fileURLWithPath: targetPath)
+            ws.open(url)
+            print("[Orbit Finder] Opened Finder at: \(targetPath)")
+        }
     }
 
     // MARK: - Native Color Sampler
