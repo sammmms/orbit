@@ -90,7 +90,7 @@ public struct TriggerConfig: Codable, Sendable {
     public init(
         hotkey: String = "Option+Space",
         enableMiddleClick: Bool = true,
-        holdModifier: String = "Option",
+        holdModifier: String = "None",
         holdDurationMs: Int = 180
     ) {
         self.hotkey = hotkey

@@ -60,7 +60,6 @@ Orbit supports multiple intuitive trigger styles out of the box:
 |---|---|
 | **⌥ Option + Space** | Global Carbon HotKey — bypasses terminal suppression. Pops up wheel at cursor. Move & click or hit **Esc** to dismiss. |
 | **Middle Click (Hold & Flick)** | Hold scroll wheel down anywhere -> flick cursor toward slice -> release to execute! |
-| **Option Hold** | Hold the `⌥ Option` key for >180ms -> wheel appears -> flick and release. |
 | **Numeric Shortcuts** | Inside Clipboard Panel, press `1` through `9` to instantly paste that snippet into the active app. |
 
 ---
@@ -182,7 +181,7 @@ You can also click the Orbit status icon in your **Menu Bar** and select **"Edit
   "trigger" : {
     "enableMiddleClick" : true,
     "holdDurationMs" : 180,
-    "holdModifier" : "Option",
+    "holdModifier" : "None",
     "hotkey" : "Option+Space"
   }
 }

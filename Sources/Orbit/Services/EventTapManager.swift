@@ -88,17 +88,22 @@ public final class EventTapManager: @unchecked Sendable {
                 }
             }
 
-            // MARK: - 2. Reset hold timer if another key is pressed
+            // MARK: - 2. Modifier Hold (Disabled when set to "None")
+            let holdSetting = config.trigger.holdModifier.lowercased()
+            guard holdSetting != "none" && !holdSetting.isEmpty else {
+                return false
+            }
+
+            // Reset hold timer if another key is pressed
             if type == .keyDown {
                 otherKeyPressedDuringHold = true
                 optionHoldTimer?.invalidate()
                 optionHoldTimer = nil
             }
 
-            // MARK: - 3. Modifier Hold (Option Key)
+            // Modifier Hold (Option Key)
             if type == .flagsChanged {
                 let optionPressed = flags.contains(.maskAlternate)
-                let holdSetting = config.trigger.holdModifier.lowercased()
 
                 if holdSetting == "option" {
                     if optionPressed && !isOptionHeld {
